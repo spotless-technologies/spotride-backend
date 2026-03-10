@@ -1,0 +1,223 @@
+import { Request, Response } from 'express';
+import prisma from '../config/prisma';
+import bcrypt from 'bcryptjs';
+import { generateOTP } from '../utils/otp';
+import { sendEmailOTP } from '../utils/email';
+import { sendSMSOTP } from '../utils/sms';
+import { generateTokens, verifyRefreshToken } from '../services/token.service';
+import { OAuth2Client } from 'google-auth-library';
+import axios from 'axios';
+import env from '../config/env';
+
+const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
+
+// Helper
+const findUserByIdentifier = (identifier: string) =>
+  prisma.user.findFirst({
+    where: { OR: [{ email: identifier }, { phone: identifier }] },
+  });
+
+// ====================== EMAIL SIGNUP ======================
+export const registerEmail = async (req: Request, res: Response) => {
+  const { email, name, password } = req.body;
+
+  const existing = await prisma.user.findUnique({ where: { email } });
+  if (existing?.verified) return res.status(409).json({ message: "Email already registered" });
+
+  const hashed = await bcrypt.hash(password, 12);
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: { name, password: hashed, verified: false },
+    create: { email, name, password: hashed, provider: 'local', verified: false },
+  });
+
+  const otp = generateOTP();
+  await prisma.verificationCode.create({
+    data: { userId: user.id, code: otp, type: 'signup', expiresAt: new Date(Date.now() + 10 * 60 * 1000) },
+  });
+
+  await sendEmailOTP(email, otp);
+
+  res.status(201).json({ message: "Verification code sent to email", userId: user.id });
+};
+
+// ====================== PHONE SIGNUP ======================
+export const registerPhone = async (req: Request, res: Response) => {
+  const { phone, password } = req.body;
+
+  const existing = await prisma.user.findUnique({ where: { phone } });
+  if (existing?.verified) return res.status(409).json({ message: "Phone already registered" });
+
+  const hashed = await bcrypt.hash(password, 12);
+  const user = await prisma.user.upsert({
+    where: { phone },
+    update: { password: hashed, verified: false },
+    create: { phone, password: hashed, provider: 'local', verified: false },
+  });
+
+  const otp = generateOTP();
+  await prisma.verificationCode.create({
+    data: { userId: user.id, code: otp, type: 'signup', expiresAt: new Date(Date.now() + 10 * 60 * 1000) },
+  });
+
+  await sendSMSOTP(phone, otp);
+
+  res.status(201).json({ message: "Verification code sent to phone", userId: user.id });
+};
+
+// ====================== VERIFY OTP ======================
+export const verifyOtp = async (req: Request, res: Response) => {
+  const { userId, otp } = req.body;
+
+  const code = await prisma.verificationCode.findFirst({
+    where: { userId, code: otp, type: 'signup', expiresAt: { gt: new Date() } },
+  });
+
+  if (!code) return res.status(400).json({ message: "Invalid or expired OTP" });
+
+  await prisma.user.update({ where: { id: userId }, data: { verified: true } });
+  await prisma.verificationCode.delete({ where: { id: code.id } });
+
+  const { accessToken, refreshToken } = await generateTokens(userId);
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  res.json({ accessToken, message: "Account verified successfully" });
+};
+
+// ====================== GOOGLE SIGNUP / LOGIN ======================
+export const googleAuth = async (req: Request, res: Response) => {
+  const { idToken } = req.body;
+  const ticket = await googleClient.verifyIdToken({ idToken, audience: env.GOOGLE_CLIENT_ID });
+  const payload = ticket.getPayload()!;
+
+  let user = await prisma.user.findFirst({
+    where: { OR: [{ provider: 'google', providerId: payload.sub }, { email: payload.email }] },
+  });
+
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email: payload.email!,
+        name: payload.name,
+        provider: 'google',
+        providerId: payload.sub,
+        verified: true,
+      },
+    });
+  } else if (!user.verified) {
+    await prisma.user.update({ where: { id: user.id }, data: { verified: true } });
+  }
+
+  const { accessToken, refreshToken } = await generateTokens(user.id);
+
+  res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'strict' });
+  res.json({ accessToken, user: { id: user.id, email: user.email, name: user.name } });
+};
+
+// ====================== FACEBOOK SIGNUP / LOGIN ======================
+export const facebookAuth = async (req: Request, res: Response) => {
+  const { accessToken } = req.body;
+  const { data } = await axios.get(
+    `https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`
+  );
+
+  let user = await prisma.user.findFirst({
+    where: { OR: [{ provider: 'facebook', providerId: data.id }, { email: data.email }] },
+  });
+
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email: data.email,
+        name: data.name,
+        provider: 'facebook',
+        providerId: data.id,
+        verified: true,
+      },
+    });
+  }
+
+  const { accessToken: jwtAccess, refreshToken } = await generateTokens(user.id);
+  res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'strict' });
+  res.json({ accessToken: jwtAccess });
+};
+
+// ====================== LOGIN ======================
+export const login = async (req: Request, res: Response) => {
+  const { identifier, password } = req.body;
+
+  const user = await findUserByIdentifier(identifier);
+  if (!user || !user.verified || !user.password) {
+    return res.status(401).json({ message: "Invalid credentials" });
+  }
+
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) return res.status(401).json({ message: "Invalid credentials" });
+
+  const { accessToken, refreshToken } = await generateTokens(user.id);
+
+  res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'strict' });
+  res.json({ accessToken });
+};
+
+// ====================== REFRESH TOKEN ======================
+export const refresh = async (req: Request, res: Response) => {
+  const refreshToken = req.cookies.refreshToken;
+  if (!refreshToken) return res.status(401).json({ message: "No refresh token" });
+
+  try {
+    const userId = await verifyRefreshToken(refreshToken); // also deletes old
+    const { accessToken, refreshToken: newRefresh } = await generateTokens(userId);
+
+    res.cookie('refreshToken', newRefresh, { httpOnly: true, secure: true, sameSite: 'strict' });
+    res.json({ accessToken });
+  } catch {
+    res.status(401).json({ message: "Invalid refresh token" });
+  }
+};
+
+// ====================== FORGOT PASSWORD ======================
+export const forgotPassword = async (req: Request, res: Response) => {
+  const { identifier } = req.body;
+  const user = await findUserByIdentifier(identifier);
+  if (!user) return res.status(200).json({ message: "If account exists, OTP sent" }); // don't leak
+
+  const otp = generateOTP();
+  await prisma.verificationCode.create({
+    data: { userId: user.id, code: otp, type: 'reset-password', expiresAt: new Date(Date.now() + 10 * 60 * 1000) },
+  });
+
+  if (user.email) await sendEmailOTP(user.email, otp);
+  else if (user.phone) await sendSMSOTP(user.phone, otp);
+
+  res.json({ message: "OTP sent" });
+};
+
+// ====================== RESET PASSWORD ======================
+export const resetPassword = async (req: Request, res: Response) => {
+  const { identifier, otp, newPassword } = req.body;
+
+  const user = await findUserByIdentifier(identifier);
+  if (!user) return res.status(400).json({ message: "User not found" });
+
+  const code = await prisma.verificationCode.findFirst({
+    where: { userId: user.id, code: otp, type: 'reset-password', expiresAt: { gt: new Date() } },
+  });
+
+  if (!code) return res.status(400).json({ message: "Invalid OTP" });
+
+  const hashed = await bcrypt.hash(newPassword, 12);
+  await prisma.user.update({ where: { id: user.id }, data: { password: hashed, verified: true } });
+  await prisma.verificationCode.delete({ where: { id: code.id } });
+
+  // Revoke all refresh tokens (security)
+  await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+
+  res.json({ message: "Password reset successfully" });
+};
