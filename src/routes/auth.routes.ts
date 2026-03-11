@@ -22,12 +22,27 @@ import {
 
 const router = Router();
 
-/** 
- * @swagger
+/** * @swagger
  * /api/auth/register/email:
- *   post:
- *     summary: Register with email + name + password
- *     tags: [Auth]
+ * post:
+ * summary: Register with email + name + password
+ * tags: [Auth]
+ * requestBody:
+ * required: true
+ * content:
+ * application/json:
+ * schema:
+ * type: object
+ * required: [email, name, password]
+ * properties:
+ * email: { type: string, format: email }
+ * name: { type: string }
+ * password: { type: string, minLength: 8 }
+ * responses:
+ * 201:
+ * description: Verification code sent
+ * 409:
+ * description: Email already registered
  */
 router.post('/register/email', validate(emailSignupSchema), registerEmail);
 

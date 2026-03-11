@@ -31,6 +31,10 @@ app.listen(PORT, async () => {
   console.log(`Swagger: http://localhost:${PORT}/api-docs`);
 });
 
+app.get('/', (req, res) => {
+  res.json({ message: "Welcome to SpotRide Auth API", docs: "/api-docs" });
+});
+
 process.on('SIGINT', async () => {
   await prisma.$disconnect();
   process.exit(0);
