@@ -13,6 +13,7 @@ const envSchema = z.object({
   TWILIO_AUTH_TOKEN: z.string(),
   TWILIO_PHONE_NUMBER: z.string(),
   GOOGLE_CLIENT_ID: z.string(),
+  RESEND_API_KEY: z.string().min(10),
 });
 
 const env = envSchema.parse(process.env);
