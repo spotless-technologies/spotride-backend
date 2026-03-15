@@ -5,8 +5,19 @@ import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import authRoutes from './routes/auth.routes';
 import prisma from './config/prisma';
+import cors from 'cors';
 
 const app = express();
+
+app.use(cors({
+  origin: '*',                                                                 
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: true,                       
+  optionsSuccessStatus: 204                
+}));
+
+app.options(/.*/, cors());
 
 app.use(express.json());
 app.use(cookieParser());
@@ -19,10 +30,12 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'Authentication API – email/phone/social + OTP verification + password reset',
     },
-    servers: [
+   servers: [
       {
-        url: 'http://localhost:5000',
-        description: 'Development server',
+        url: process.env.RENDER_EXTERNAL_HOSTNAME 
+          ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}` 
+          : 'http://localhost:5000',
+        description: process.env.NODE_ENV === 'production' ? 'Production' : 'Development',
       },
     ],
     tags: [
@@ -64,14 +77,15 @@ app.get('/', (req, res) => {
   });
 });
 
-const PORT = 5000;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
 
-app.listen(PORT, async () => {
-  console.log(`Server running on http://localhost:${PORT}`);
-  console.log(`Swagger UI:   http://localhost:${PORT}/api-docs`);
+app.listen(PORT, '0.0.0.0', async () => {
+  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+  const host = process.env.RENDER_EXTERNAL_HOSTNAME || `localhost:${PORT}`;
+
+  console.log(`Server running on ${protocol}://${host}`);
+  console.log(`Swagger UI:   ${protocol}://${host}/api-docs`);
 });
-
-
 
 process.on('SIGINT', async () => {
   console.log('\nShutting down...');
