@@ -6,6 +6,7 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import authRoutes from './routes/auth.routes';
 import prisma from './config/prisma';
 import cors from 'cors';
+import type { OpenAPIV3 } from 'openapi-types';
 
 const app = express();
 
@@ -30,12 +31,10 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'Authentication API – email/phone/social + OTP verification + password reset',
     },
-   servers: [
+  servers: [
       {
-        url: process.env.RENDER_EXTERNAL_HOSTNAME 
-          ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}` 
-          : 'http://localhost:5000',
-        description: process.env.NODE_ENV === 'production' ? 'Production' : 'Development',
+        url: 'http://localhost:5000',
+        description: 'Development',
       },
     ],
     tags: [
@@ -57,14 +56,31 @@ const swaggerOptions = {
   apis: ['./src/routes/*.ts', './src/controllers/*.ts'],
 };
 
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  explorer: true,
-  swaggerOptions: {
-    persistAuthorization: true,
-  },
-}));
+app.get('/api-docs.json', (req, res) => {
+  const spec = swaggerJsdoc(swaggerOptions) as OpenAPIV3.Document;
+
+  spec.servers = [
+    {
+      url: `${req.protocol}://${req.get('host')}`,
+      description: 'Current server (auto-detected)',
+    },
+  ];
+
+  res.json(spec);
+});
+
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(null, {                       
+    swaggerOptions: {
+      url: '/api-docs.json',                    
+      persistAuthorization: true,
+    },
+    explorer: true,
+  })
+);
 
 // Routes
 app.use('/api/auth', authRoutes);
