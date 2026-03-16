@@ -10,6 +10,8 @@ import type { OpenAPIV3 } from 'openapi-types';
 
 const app = express();
 
+app.set("trust proxy", 1);
+
 app.use(cors({
   origin: true,     
   credentials: true,
@@ -32,12 +34,16 @@ const swaggerOptions = {
       version: '1.0.0',
       description: 'Authentication API – email/phone/social + OTP verification + password reset',
     },
-  servers: [
-      {
-        url: 'http://localhost:5000',
-        description: 'Development',
-      },
-    ],
+servers: [
+  {
+    url: 'https://spotride-backend.onrender.com',
+    description: 'Production',
+  },
+  {
+    url: 'http://localhost:5000',
+    description: 'Development',
+  },
+],
     tags: [
       {
         name: 'Auth',
@@ -57,14 +63,16 @@ const swaggerOptions = {
   apis: ['./src/routes/*.ts', './src/controllers/*.ts'],
 };
 
-
 app.get('/api-docs.json', (req, res) => {
   const spec = swaggerJsdoc(swaggerOptions) as OpenAPIV3.Document;
 
+  const protocol =
+    process.env.NODE_ENV === "production" ? "https" : req.protocol;
+
   spec.servers = [
     {
-      url: `${req.protocol}://${req.get('host')}`,
-      description: 'Current server (auto-detected)',
+      url: `${protocol}://${req.get("host")}`,
+      description: "Current server (auto-detected)",
     },
   ];
 
