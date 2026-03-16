@@ -11,11 +11,12 @@ import type { OpenAPIV3 } from 'openapi-types';
 const app = express();
 
 app.use(cors({
-  origin: '*',                                                                 
+  origin: true,     
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  credentials: true,                       
-  optionsSuccessStatus: 204                
+  optionsSuccessStatus: 204,
+  exposedHeaders: ['Set-Cookie']
 }));
 
 app.options(/.*/, cors());
