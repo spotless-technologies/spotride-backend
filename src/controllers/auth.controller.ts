@@ -28,7 +28,7 @@ export const registerEmail = async (req: Request, res: Response) => {
   const user = await prisma.user.upsert({
     where: { email },
     update: { name, password: hashed, verified: false },
-    create: { email, name, password: hashed, provider: 'local', verified: false },
+    create: { email, name, password: hashed, provider: 'local', verified: false, role: 'RIDER' },
   });
 
   const otp = generateOTP();
@@ -36,9 +36,16 @@ export const registerEmail = async (req: Request, res: Response) => {
     data: { userId: user.id, code: otp, type: 'signup', expiresAt: new Date(Date.now() + 10 * 60 * 1000) },
   });
 
+ try {
   await sendEmailOTP(email, otp);
+    res.status(201).json({ message: "Verification code sent to email", userId: user.id });
+} catch (error) {
+  console.error('Email failed, but continuing:', error); // ✅ ADDED
 
-  res.status(201).json({ message: "Verification code sent to email", userId: user.id });
+  return res.status(500).json({
+    message: 'User created but failed to send OTP email. Please try again.',
+  }); 
+}
 };
 
 // ====================== PHONE SIGNUP ======================
@@ -52,7 +59,7 @@ export const registerPhone = async (req: Request, res: Response) => {
   const user = await prisma.user.upsert({
     where: { phone },
     update: { password: hashed, verified: false },
-    create: { phone, password: hashed, provider: 'local', verified: false },
+    create: { phone, password: hashed, provider: 'local', verified: false, role: 'RIDER' },
   });
 
   const otp = generateOTP();

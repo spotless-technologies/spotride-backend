@@ -4,6 +4,8 @@ import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import authRoutes from './routes/auth.routes';
+import dashboardRoutes from './routes/dashboard.routes';
+import driversRoutes from './routes/drivers.routes';
 import prisma from './config/prisma';
 import cors from 'cors';
 import type { OpenAPIV3 } from 'openapi-types';
@@ -52,6 +54,11 @@ servers: [
     ],
     components: {
       securitySchemes: {
+         bearerAuth: {           
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
+        },
         cookieAuth: {
           type: 'apiKey',
           in: 'cookie',
@@ -93,6 +100,8 @@ app.use(
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/dashboard', dashboardRoutes); 
+app.use('/drivers', driversRoutes); 
 
 // Root endpoint
 app.get('/', (req, res) => {

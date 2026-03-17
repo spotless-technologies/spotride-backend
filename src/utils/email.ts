@@ -20,39 +20,44 @@
 //   });
 // };
 
-// src/utils/email.ts
 import { Resend } from 'resend';
-import env from '../config/env'; 
+import env from '../config/env';
 
 const resend = new Resend(env.RESEND_API_KEY);
 
 export const sendEmailOTP = async (to: string, otp: string) => {
-  const { data, error } = await resend.emails.send({
-    from: 'SpotRide <onboarding@resend.dev>', // Change to your verified domain later
-    to: [to],
-    subject: 'Your Verification Code - SpotRide',
-    html: `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2>Your OTP Code</h2>
-        <p>Use this code to verify your account:</p>
-        <h1 style="letter-spacing: 10px; font-size: 32px; text-align: center;">${otp}</h1>
-        <p>This code expires in <strong>10 minutes</strong>.</p>
-        <p>If you didn't request this, please ignore this email.</p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-        <p style="color: #666; font-size: 14px;">
-          SpotRide – Secure rides, anytime.
-        </p>
-      </div>
-    `,
-    // Optional: text fallback
-    text: `Your OTP is ${otp}. Valid for 10 minutes.`,
-  });
+  try {
+    //Validate API key before sending
+    if (!env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is not set');
+    }
 
-  if (error) {
-    console.error('Resend error:', error);
-    throw new Error(`Failed to send email: ${error.message}`);
+    const { data, error } = await resend.emails.send({
+      from: 'SpotRide <onboarding@resend.dev>',
+      to: [to],
+      subject: 'Your Verification Code - SpotRide',
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2>Your OTP Code</h2>
+          <p>Use this code to verify your account:</p>
+          <h1 style="letter-spacing: 10px; font-size: 32px; text-align: center;">${otp}</h1>
+          <p>This code expires in <strong>10 minutes</strong>.</p>
+        </div>
+      `,
+      text: `Your OTP is ${otp}. Valid for 10 minutes.`,
+    });
+
+    if (error) {
+      console.error('Resend error:', error);
+      throw new Error(error.message);
+    }
+
+    console.log('Email sent:', data?.id);
+    return data;
+
+  } catch (err: any) {
+    console.error('Email sending failed:', err.message);
+
+    throw new Error(`Failed to send email: ${err.message}`);
   }
-
-  console.log('Email sent via Resend:', data?.id);
-  return data;
 };

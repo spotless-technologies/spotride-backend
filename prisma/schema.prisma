@@ -13,22 +13,136 @@ datasource db {
   // url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String   @id @default(uuid())
-  email         String?  @unique
-  phone         String?  @unique
-  name          String?
-  password      String?
-  provider      String?  // "local" | "google" | "facebook"
-  providerId    String?  @unique
-  verified      Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+enum UserRole {
+  RIDER
+  DRIVER
+  CAR_OWNER
+  ADMIN
+}
 
-  refreshTokens RefreshToken[]
+model User {
+  id         String   @id @default(uuid())
+  email      String?  @unique
+  phone      String?  @unique
+  name       String?
+  password   String?
+  provider   String? // "local" | "google" | "facebook"
+  providerId String?  @unique
+  verified   Boolean  @default(false)
+  role       UserRole @default(RIDER)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  refreshTokens     RefreshToken[]
   verificationCodes VerificationCode[]
 
+  driver         Driver?
+  rider          Rider?
+  carOwner       CarOwner?
+  scheduledRides ScheduledRide[] @relation("RiderScheduledRides")
+  trips          Trip[]
+
   @@map("users")
+}
+
+model Driver {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  vehicleModel      String?
+  vehiclePlate      String?   @unique
+  vehicleColor      String?
+  vehicleYear       Int?
+  licenseNumber     String?   @unique
+  licenseExpiry     DateTime?
+  documentsVerified Boolean   @default(false)
+
+  status           String    @default("pending") // pending, approved, rejected, suspended
+  rejectionReason  String?
+  approvedAt       DateTime?
+  suspendedAt      DateTime?
+  suspensionReason String?
+
+  rating     Float @default(0.0)
+  totalTrips Int   @default(0)
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  scheduledRides ScheduledRide[]
+  trips          Trip[]
+
+  @@map("drivers")
+}
+
+model Rider {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  totalRides Int   @default(0)
+  rating     Float @default(0.0)
+  totalSpent Float @default(0.0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("riders")
+}
+
+model CarOwner {
+  id     String @id @default(uuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  companyName     String?
+  status          String    @default("pending")
+  approvedAt      DateTime?
+  rejectionReason String?
+
+  totalCars     Int   @default(0)
+  totalEarnings Float @default(0.0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("car_owners")
+}
+
+model ScheduledRide {
+  id      String @id @default(uuid())
+  riderId String
+  rider   User   @relation("RiderScheduledRides", fields: [riderId], references: [id])
+
+  pickupLocation  Json
+  dropoffLocation Json
+  scheduledTime   DateTime
+  vehicleType     String?
+  estimatedPrice  Float?
+  status          String   @default("pending")
+  driverId        String?
+  driver          Driver?  @relation(fields: [driverId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("scheduled_rides")
+}
+
+model Trip {
+  id        String   @id @default(uuid())
+  riderId   String
+  driverId  String?
+  status    String // ongoing, completed, cancelled
+  revenue   Float?
+  rating    Float?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rider  User    @relation(fields: [riderId], references: [id])
+  driver Driver? @relation(fields: [driverId], references: [id])
+
+  @@map("trips")
 }
 
 model RefreshToken {
@@ -45,7 +159,7 @@ model VerificationCode {
   id        String   @id @default(uuid())
   userId    String
   code      String
-  type      String   // "signup" | "reset-password"
+  type      String // "signup" | "reset-password"
   expiresAt DateTime
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
