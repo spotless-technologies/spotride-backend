@@ -33,7 +33,7 @@ export const sendEmailOTP = async (to: string, otp: string) => {
     }
 
     const { data, error } = await resend.emails.send({
-      from: 'SpotRide <onboarding@resend.dev>',
+      from: 'SpotRide <noreply@spotrideapp.com>',
       to: [to],
       subject: 'Your Verification Code - SpotRide',
       html: `

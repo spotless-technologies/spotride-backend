@@ -33,8 +33,10 @@ const router = Router();
  * @swagger
  * /api/auth/register/email:
  *   post:
- *     summary: Register with email + name + password
+ *     summary: Register with email + firstName + lastName + role + password
  *     tags: [Auth]
+ *     description: |
+ *       Register a new user using email.
  *     requestBody:
  *       required: true
  *       content:
@@ -43,7 +45,9 @@ const router = Router();
  *             type: object
  *             required:
  *               - email
- *               - name
+ *               - firstName
+ *               - lastName
+ *               - role
  *               - password
  *               - confirmPassword
  *             properties:
@@ -51,10 +55,16 @@ const router = Router();
  *                 type: string
  *                 format: email
  *                 example: user@example.com
- *               name:
+ *               firstName:
  *                 type: string
- *                 minLength: 2
- *                 example: John Doe
+ *                 example: John
+ *               lastName:
+ *                 type: string
+ *                 example: Doe
+ *               role:
+ *                 type: string
+ *                 enum: [RIDER, DRIVER, CAR_OWNER]
+ *                 example: RIDER
  *               password:
  *                 type: string
  *                 minLength: 8
@@ -78,6 +88,8 @@ const router = Router();
  *                   format: uuid
  *       400:
  *         description: Validation error (e.g. passwords don't match)
+ *       403:
+ *         description: Attempt to register as ADMIN
  *       409:
  *         description: Email already registered
  */
@@ -87,8 +99,10 @@ router.post('/register/email', validate(emailSignupSchema), registerEmail);
  * @swagger
  * /api/auth/register/phone:
  *   post:
- *     summary: Register with phone number + password
+ *     summary: Register with phone number + firstName + lastName + role + password
  *     tags: [Auth]
+ *     description: |
+ *       Register a new user using phone number.
  *     requestBody:
  *       required: true
  *       content:
@@ -96,13 +110,26 @@ router.post('/register/email', validate(emailSignupSchema), registerEmail);
  *           schema:
  *             type: object
  *             required:
- *               - phone
+ *               - phoneNumber
+ *               - firstName
+ *               - lastName
+ *               - role
  *               - password
  *               - confirmPassword
  *             properties:
- *               phone:
+ *               phoneNumber:
  *                 type: string
  *                 example: "+2348012345678"
+ *               firstName:
+ *                 type: string
+ *                 example: John
+ *               lastName:
+ *                 type: string
+ *                 example: Doe
+ *               role:
+ *                 type: string
+ *                 enum: [RIDER, DRIVER, CAR_OWNER]
+ *                 example: DRIVER
  *               password:
  *                 type: string
  *                 minLength: 8
@@ -116,6 +143,8 @@ router.post('/register/email', validate(emailSignupSchema), registerEmail);
  *         description: Verification code sent to phone
  *       400:
  *         description: Validation error
+ *       403:
+ *         description: Attempt to register as ADMIN
  *       409:
  *         description: Phone already registered
  */
@@ -159,6 +188,9 @@ router.post('/verify-otp', validate(verifyOtpSchema), verifyOtp);
  *   post:
  *     summary: Google sign-in / sign-up
  *     tags: [Auth]
+ *     description: |
+ *       Authenticate user using Google OAuth.
+ *       firstName and lastName are automatically extracted from Google profile.
  *     requestBody:
  *       required: true
  *       content:
@@ -170,11 +202,28 @@ router.post('/verify-otp', validate(verifyOtpSchema), verifyOtp);
  *             properties:
  *               idToken:
  *                 type: string
- *                 description: Google ID token obtained from client-side Google Sign-In
  *                 example: eyJhbGciOiJSUzI1NiIsImtpZCI6Im...
  *     responses:
  *       200:
  *         description: Authentication successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     email:
+ *                       type: string
+ *                     firstName:
+ *                       type: string
+ *                     lastName:
+ *                       type: string
  *       400:
  *         description: Invalid Google token
  */
@@ -186,6 +235,9 @@ router.post('/google', googleAuth);
  *   post:
  *     summary: Facebook sign-in / sign-up
  *     tags: [Auth]
+ *     description: |
+ *       Authenticate user using Facebook OAuth.
+ *       Name is split into firstName and lastName automatically.
  *     requestBody:
  *       required: true
  *       content:
@@ -197,7 +249,6 @@ router.post('/google', googleAuth);
  *             properties:
  *               accessToken:
  *                 type: string
- *                 description: Facebook user access token
  *                 example: EAA...
  *     responses:
  *       200:

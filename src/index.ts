@@ -6,6 +6,9 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import authRoutes from './routes/auth.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import driversRoutes from './routes/drivers.routes';
+import ridersRoutes from './routes/riders.routes';
+import carOwnersRoutes from './routes/car-owners.routes';
+import scheduledRidesRoutes from './routes/scheduled-rides.routes';
 import prisma from './config/prisma';
 import cors from 'cors';
 import type { OpenAPIV3 } from 'openapi-types';
@@ -70,9 +73,9 @@ servers: [
   apis: ['./src/routes/*.ts', './src/controllers/*.ts'],
 };
 
-app.get('/api-docs.json', (req, res) => {
-  const spec = swaggerJsdoc(swaggerOptions) as OpenAPIV3.Document;
+const spec = swaggerJsdoc(swaggerOptions) as OpenAPIV3.Document;
 
+app.get('/api-docs.json', (req, res) => {
   const protocol =
     process.env.NODE_ENV === "production" ? "https" : req.protocol;
 
@@ -101,7 +104,10 @@ app.use(
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/dashboard', dashboardRoutes); 
-app.use('/drivers', driversRoutes); 
+app.use('/drivers', driversRoutes);
+app.use('/riders', ridersRoutes);
+app.use('/car-owners', carOwnersRoutes);
+app.use('/scheduled-rides', scheduledRidesRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
@@ -111,7 +117,7 @@ app.get('/', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT ? Number(process.env.PORT) : 5000;
+const PORT = process.env.PORT ? Number(process.env.PORT) : 5001;
 
 app.listen(PORT, '0.0.0.0', async () => {
   const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';

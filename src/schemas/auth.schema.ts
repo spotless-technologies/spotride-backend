@@ -2,7 +2,9 @@ import { z } from 'zod';
 
 export const emailSignupSchema = z.object({
   email: z.string().email(),
-  name: z.string().min(2),
+  firstName: z.string().min(2, "First name is required"),
+  lastName: z.string().min(2, "Last name is required"),
+  role: z.enum(['RIDER', 'DRIVER', 'CAR_OWNER']),
   password: z.string().min(8),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -12,6 +14,9 @@ export const emailSignupSchema = z.object({
 
 export const phoneSignupSchema = z.object({
   phone: z.string().min(10),
+  firstName: z.string().min(2, "First name is required"),
+  lastName: z.string().min(2, "Last name is required"),
+  role: z.enum(['RIDER', 'DRIVER', 'CAR_OWNER']),
   password: z.string().min(8),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {

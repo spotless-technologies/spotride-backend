@@ -40,7 +40,7 @@ export const getRecentActivity = async (req: Request, res: Response) => {
   const activities = await prisma.user.findMany({
     take: 10,
     orderBy: { createdAt: 'desc' },
-    select: { name: true, role: true, createdAt: true },
+    select: { firstName: true, lastName:true, role: true, createdAt: true },
   });
 
   res.json(activities);

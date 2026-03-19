@@ -19,7 +19,15 @@ const findUserByIdentifier = (identifier: string) =>
 
 // ====================== EMAIL SIGNUP ======================
 export const registerEmail = async (req: Request, res: Response) => {
-  const { email, name, password } = req.body;
+  const { email, firstName, lastName, role, password, confirmPassword } = req.body;
+
+  if (role === 'ADMIN') {
+    return res.status(403).json({ message: "Cannot register as ADMIN" });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ message: "Passwords do not match" });
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing?.verified) return res.status(409).json({ message: "Email already registered" });
@@ -27,8 +35,8 @@ export const registerEmail = async (req: Request, res: Response) => {
   const hashed = await bcrypt.hash(password, 12);
   const user = await prisma.user.upsert({
     where: { email },
-    update: { name, password: hashed, verified: false },
-    create: { email, name, password: hashed, provider: 'local', verified: false, role: 'RIDER' },
+    update: { firstName, lastName, password: hashed, verified: false, role },
+    create: { email, firstName, lastName, password: hashed, provider: 'local', verified: false, role: role || 'RIDER' },
   });
 
   const otp = generateOTP();
@@ -36,21 +44,26 @@ export const registerEmail = async (req: Request, res: Response) => {
     data: { userId: user.id, code: otp, type: 'signup', expiresAt: new Date(Date.now() + 10 * 60 * 1000) },
   });
 
- try {
-  await sendEmailOTP(email, otp);
+  try {
+    await sendEmailOTP(email, otp);
     res.status(201).json({ message: "Verification code sent to email", userId: user.id });
-} catch (error) {
-  console.error('Email failed, but continuing:', error); // ✅ ADDED
-
-  return res.status(500).json({
-    message: 'User created but failed to send OTP email. Please try again.',
-  }); 
-}
+  } catch (error) {
+    console.error('Email failed, but continuing:', error);
+    return res.status(500).json({ message: 'User created but failed to send OTP email. Please try again.' });
+  }
 };
 
 // ====================== PHONE SIGNUP ======================
 export const registerPhone = async (req: Request, res: Response) => {
-  const { phone, password } = req.body;
+  const { phone, firstName, lastName, role, password, confirmPassword } = req.body;
+
+  if (role === 'ADMIN') {
+    return res.status(403).json({ message: "Cannot register as ADMIN" });
+  }
+
+  if (password !== confirmPassword) {
+    return res.status(400).json({ message: "Passwords do not match" });
+  }
 
   const existing = await prisma.user.findUnique({ where: { phone } });
   if (existing?.verified) return res.status(409).json({ message: "Phone already registered" });
@@ -58,8 +71,8 @@ export const registerPhone = async (req: Request, res: Response) => {
   const hashed = await bcrypt.hash(password, 12);
   const user = await prisma.user.upsert({
     where: { phone },
-    update: { password: hashed, verified: false },
-    create: { phone, password: hashed, provider: 'local', verified: false, role: 'RIDER' },
+    update: { firstName, lastName, password: hashed, verified: false, role },
+    create: { phone, firstName, lastName, password: hashed, provider: 'local', verified: false, role: role || 'RIDER' },
   });
 
   const otp = generateOTP();
@@ -68,7 +81,6 @@ export const registerPhone = async (req: Request, res: Response) => {
   });
 
   await sendSMSOTP(phone, otp);
-
   res.status(201).json({ message: "Verification code sent to phone", userId: user.id });
 };
 
@@ -100,49 +112,100 @@ export const verifyOtp = async (req: Request, res: Response) => {
 // ====================== GOOGLE SIGNUP / LOGIN ======================
 export const googleAuth = async (req: Request, res: Response) => {
   const { idToken } = req.body;
-  const ticket = await googleClient.verifyIdToken({ idToken, audience: env.GOOGLE_CLIENT_ID });
-  const payload = ticket.getPayload()!;
+
+  const ticket = await googleClient.verifyIdToken({
+    idToken,
+    audience: env.GOOGLE_CLIENT_ID,
+  });
+
+  const payload = ticket.getPayload();
+  if (!payload) return res.status(400).json({ message: "Invalid Google token" });
+
+  // SAFE FALLBACKS
+  const firstName =
+    payload.given_name ||
+    payload.name?.split(' ')[0] ||
+    'User';
+
+  const lastName =
+    payload.family_name ||
+    payload.name?.split(' ').slice(1).join(' ') ||
+    'User';
 
   let user = await prisma.user.findFirst({
-    where: { OR: [{ provider: 'google', providerId: payload.sub }, { email: payload.email }] },
+    where: {
+      OR: [
+        { provider: 'google', providerId: payload.sub },
+        { email: payload.email },
+      ],
+    },
   });
 
   if (!user) {
     user = await prisma.user.create({
       data: {
         email: payload.email!,
-        name: payload.name,
+        firstName,
+        lastName,
         provider: 'google',
         providerId: payload.sub,
         verified: true,
       },
     });
   } else if (!user.verified) {
-    await prisma.user.update({ where: { id: user.id }, data: { verified: true } });
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { verified: true },
+    });
   }
 
   const { accessToken, refreshToken } = await generateTokens(user.id);
 
-  res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'strict' });
-  res.json({ accessToken, user: { id: user.id, email: user.email, name: user.name } });
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+  });
+
+  res.json({
+    accessToken,
+    user: {
+      id: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+    },
+  });
 };
 
 // ====================== FACEBOOK SIGNUP / LOGIN ======================
 export const facebookAuth = async (req: Request, res: Response) => {
   const { accessToken } = req.body;
+
   const { data } = await axios.get(
     `https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`
   );
 
+  // ✅ SPLIT NAME SAFELY
+  const nameParts = data.name?.split(' ') || [];
+  const firstName = nameParts[0] || 'User';
+  const lastName = nameParts.slice(1).join(' ') || 'User';
+
   let user = await prisma.user.findFirst({
-    where: { OR: [{ provider: 'facebook', providerId: data.id }, { email: data.email }] },
+    where: {
+      OR: [
+        { provider: 'facebook', providerId: data.id },
+        { email: data.email },
+      ],
+    },
   });
 
   if (!user) {
     user = await prisma.user.create({
       data: {
         email: data.email,
-        name: data.name,
+        firstName,
+        lastName,
         provider: 'facebook',
         providerId: data.id,
         verified: true,
@@ -151,7 +214,13 @@ export const facebookAuth = async (req: Request, res: Response) => {
   }
 
   const { accessToken: jwtAccess, refreshToken } = await generateTokens(user.id);
-  res.cookie('refreshToken', refreshToken, { httpOnly: true, secure: true, sameSite: 'strict' });
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+  });
+
   res.json({ accessToken: jwtAccess });
 };
 

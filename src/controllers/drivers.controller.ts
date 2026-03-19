@@ -29,7 +29,7 @@ export const listDrivers = async (req: Request, res: Response) => {
       skip,
       take: limit,
       where,
-      include: { user: { select: { name: true, email: true, phone: true } } },
+      include: { user: { select: { firstName: true, lastName:true, email: true, phone: true } } },
       orderBy: { createdAt: 'desc' },
     }),
     prisma.driver.count({ where }),
