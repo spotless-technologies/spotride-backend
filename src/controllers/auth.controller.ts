@@ -11,7 +11,6 @@ import env from '../config/env';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
-// Helper
 const findUserByIdentifier = (identifier: string) =>
   prisma.user.findFirst({
     where: { OR: [{ email: identifier }, { phone: identifier }] },
@@ -88,25 +87,91 @@ export const registerPhone = async (req: Request, res: Response) => {
 export const verifyOtp = async (req: Request, res: Response) => {
   const { userId, otp } = req.body;
 
-  const code = await prisma.verificationCode.findFirst({
-    where: { userId, code: otp, type: 'signup', expiresAt: { gt: new Date() } },
-  });
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // Validate OTP
+      const code = await tx.verificationCode.findFirst({
+        where: {
+          userId,
+          code: otp,
+          type: 'signup',
+          expiresAt: { gt: new Date() },
+        },
+      });
 
-  if (!code) return res.status(400).json({ message: "Invalid or expired OTP" });
+      if (!code) {
+        throw new Error('Invalid or expired OTP');
+      }
 
-  await prisma.user.update({ where: { id: userId }, data: { verified: true } });
-  await prisma.verificationCode.delete({ where: { id: code.id } });
+      // Verify user
+      const user = await tx.user.update({
+        where: { id: userId },
+        data: { verified: true },
+      });
 
-  const { accessToken, refreshToken } = await generateTokens(userId);
+      // Delete used OTP
+      await tx.verificationCode.delete({
+        where: { id: code.id },
+      });
 
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+      if (user.role === 'DRIVER') {
+        await tx.driver.upsert({
+          where: { userId: user.id },
+          update: {},
+          create: {
+            userId: user.id,
+          },
+        });
+      }
 
-  res.json({ accessToken, message: "Account verified successfully" });
+      if (user.role === 'RIDER') {
+        await tx.rider.upsert({
+          where: { userId: user.id },
+          update: {},
+          create: {
+            userId: user.id,
+          },
+        });
+      }
+
+      if (user.role === 'CAR_OWNER') {
+        await tx.carOwner.upsert({
+          where: { userId: user.id },
+          update: {},
+          create: {
+            userId: user.id,
+          },
+        });
+      }
+
+      return user;
+    });
+
+    // Generate tokens AFTER transaction
+    const { accessToken, refreshToken } = await generateTokens(result.id);
+
+    // Set cookie
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    // Response
+    return res.json({
+      accessToken,
+      message: 'Account verified successfully',
+    });
+
+  } catch (error: any) {
+    if (error.message === 'Invalid or expired OTP') {
+      return res.status(400).json({ message: error.message });
+    }
+
+    console.error('verifyOtp error:', error);
+    return res.status(500).json({ message: 'Something went wrong' });
+  }
 };
 
 // ====================== GOOGLE SIGNUP / LOGIN ======================
@@ -186,7 +251,6 @@ export const facebookAuth = async (req: Request, res: Response) => {
     `https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`
   );
 
-  // ✅ SPLIT NAME SAFELY
   const nameParts = data.name?.split(' ') || [];
   const firstName = nameParts[0] || 'User';
   const lastName = nameParts.slice(1).join(' ') || 'User';
@@ -262,7 +326,7 @@ export const refresh = async (req: Request, res: Response) => {
 export const forgotPassword = async (req: Request, res: Response) => {
   const { identifier } = req.body;
   const user = await findUserByIdentifier(identifier);
-  if (!user) return res.status(200).json({ message: "If account exists, OTP sent" }); // don't leak
+  if (!user) return res.status(200).json({ message: "If account exists, OTP sent" });
 
   const otp = generateOTP();
   await prisma.verificationCode.create({
@@ -292,7 +356,7 @@ export const resetPassword = async (req: Request, res: Response) => {
   await prisma.user.update({ where: { id: user.id }, data: { password: hashed, verified: true } });
   await prisma.verificationCode.delete({ where: { id: code.id } });
 
-  // Revoke all refresh tokens (security)
+  // Revoke all refresh tokens
   await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
 
   res.json({ message: "Password reset successfully" });

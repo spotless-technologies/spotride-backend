@@ -14,6 +14,10 @@ const envSchema = z.object({
   TWILIO_PHONE_NUMBER: z.string(),
   GOOGLE_CLIENT_ID: z.string(),
   RESEND_API_KEY: z.string().min(10),
+  AWS_ACCESS_KEY_ID:     z.string().min(16),
+  AWS_SECRET_ACCESS_KEY: z.string().min(30),
+  AWS_REGION:            z.string().min(4),           
+  AWS_S3_BUCKET_NAME:    z.string().min(3),
 });
 
 const env = envSchema.parse(process.env);

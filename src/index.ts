@@ -9,6 +9,17 @@ import driversRoutes from './routes/drivers.routes';
 import ridersRoutes from './routes/riders.routes';
 import carOwnersRoutes from './routes/car-owners.routes';
 import scheduledRidesRoutes from './routes/scheduled-rides.routes';
+
+import driverProfileRoutes from './routes/driver-profile.routes';
+import driverStatusRoutes from './routes/driver-status.routes';
+import rideRequestsRoutes from './routes/ride-requests.routes';
+import driverTripsRoutes from './routes/driver-trips.routes';
+import driverEarningsRoutes from './routes/driver-earnings.routes';
+import driverMapRoutes from './routes/driver-map.routes';
+import driverNotificationsRoutes from './routes/driver-notifications.routes';
+import driverVehicleRoutes from './routes/driver-vehicle.routes';
+import driverSettingsRoutes from './routes/driver-settings.routes';
+
 import prisma from './config/prisma';
 import cors from 'cors';
 import type { OpenAPIV3 } from 'openapi-types';
@@ -108,6 +119,16 @@ app.use('/drivers', driversRoutes);
 app.use('/riders', ridersRoutes);
 app.use('/car-owners', carOwnersRoutes);
 app.use('/scheduled-rides', scheduledRidesRoutes);
+
+app.use('/driver', driverProfileRoutes);
+app.use('/driver', driverStatusRoutes);
+app.use('/driver', rideRequestsRoutes);
+app.use('/driver', driverTripsRoutes);
+app.use('/driver', driverEarningsRoutes);
+app.use('/driver', driverMapRoutes);
+app.use('/driver', driverNotificationsRoutes);
+app.use('/driver', driverVehicleRoutes);
+app.use('/driver', driverSettingsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

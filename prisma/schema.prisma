@@ -31,8 +31,14 @@ model User {
   providerId String?  @unique
   verified   Boolean  @default(false)
   role       UserRole @default(RIDER)
+  profilePicture    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  fcmToken          String?
+
+  language              String?   @default("en")    // e.g. "en", "fr", "yo"
+  pushNotifications     Boolean   @default(true)
+  navigationPreference  String?   @default("google") // e.g. "google", "waze", "apple"
 
   refreshTokens     RefreshToken[]
   verificationCodes VerificationCode[]
@@ -42,6 +48,7 @@ model User {
   carOwner       CarOwner?
   scheduledRides ScheduledRide[] @relation("RiderScheduledRides")
   trips          Trip[]
+  notifications     Notification[]
 
   @@map("users")
 }
@@ -51,12 +58,19 @@ model Driver {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  bankName            String?
+  accountNumber       String?
+  accountName         String?
+
   vehicleModel      String?
   vehiclePlate      String?   @unique
   vehicleColor      String?
   vehicleYear       Int?
   licenseNumber     String?   @unique
   licenseExpiry     DateTime?
+  licenseUrl          String?   // S3 URL
+  vehicleRegUrl       String?   // S3 URL
+  insuranceUrl        String?   // S3 URL
   documentsVerified Boolean   @default(false)
 
   status           String    @default("pending") // pending, approved, rejected, suspended
@@ -67,13 +81,62 @@ model Driver {
 
   rating     Float @default(0.0)
   totalTrips Int   @default(0)
+  totalEarnings       Float     @default(0.0)
+
+  isOnline            Boolean   @default(false)
+  currentLocation     Json?     
+  lastLocationUpdate  DateTime? @db.Timestamp
 
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   scheduledRides ScheduledRide[]
   trips          Trip[]
 
+  carRentalBookings   CarRentalBooking[]
+
   @@map("drivers")
+}
+
+model CarRental {
+  id            String   @id @default(uuid())
+  ownerId       String
+  owner         CarOwner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  vehicleModel  String
+  vehiclePlate  String   @unique
+  vehicleColor  String?
+  vehicleYear   Int?
+  vehicleType   String   
+  pricePerDay   Float
+  available     Boolean  @default(true)
+  description   String?
+  images        String[] 
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  bookings      CarRentalBooking[]
+
+  @@map("car_rentals")
+}
+
+model CarRentalBooking {
+  id          String    @id @default(uuid())
+  driverId    String
+  driver      Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  carId       String
+  car         CarRental @relation(fields: [carId], references: [id], onDelete: Cascade)
+
+  startDate   DateTime
+  endDate     DateTime
+  totalPrice  Float?
+  status      String    @default("pending") // pending, confirmed, active, completed, cancelled
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("car_rental_bookings")
 }
 
 model Rider {
@@ -103,6 +166,8 @@ model CarOwner {
 
   totalCars     Int   @default(0)
   totalEarnings Float @default(0.0)
+
+  carRentals        CarRental[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -144,6 +209,23 @@ model Trip {
   driver Driver? @relation(fields: [driverId], references: [id])
 
   @@map("trips")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title     String
+  message   String
+  type      String?  // e.g. "ride_request", "payment", "system"
+  read      Boolean  @default(false)
+  data      Json?    // optional payload, e.g. { rideId: "..." }
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("notifications")
 }
 
 model RefreshToken {
