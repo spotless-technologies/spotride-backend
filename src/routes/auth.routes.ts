@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import { validate } from '../middleware/validate';
+import { Router } from "express";
+import { validate } from "../middleware/validate";
 import {
   registerEmail,
   registerPhone,
@@ -7,10 +7,12 @@ import {
   googleAuth,
   facebookAuth,
   login,
+  logout,
   refresh,
   forgotPassword,
   resetPassword,
-} from '../controllers/auth.controller';
+} from "../controllers/auth.controller";
+import { otpRateLimit } from "../middleware/otpRateLimit";
 import {
   emailSignupSchema,
   phoneSignupSchema,
@@ -18,7 +20,7 @@ import {
   loginSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
-} from '../schemas/auth.schema';
+} from "../schemas/auth.schema";
 
 const router = Router();
 
@@ -93,7 +95,7 @@ const router = Router();
  *       409:
  *         description: Email already registered
  */
-router.post('/register/email', validate(emailSignupSchema), registerEmail);
+router.post("/register/email", validate(emailSignupSchema), registerEmail);
 
 /**
  * @swagger
@@ -148,7 +150,7 @@ router.post('/register/email', validate(emailSignupSchema), registerEmail);
  *       409:
  *         description: Phone already registered
  */
-router.post('/register/phone', validate(phoneSignupSchema), registerPhone);
+router.post("/register/phone", validate(phoneSignupSchema), registerPhone);
 
 /**
  * @swagger
@@ -180,7 +182,7 @@ router.post('/register/phone', validate(phoneSignupSchema), registerPhone);
  *       400:
  *         description: Invalid or expired OTP
  */
-router.post('/verify-otp', validate(verifyOtpSchema), verifyOtp);
+router.post("/verify-otp", otpRateLimit, validate(verifyOtpSchema), verifyOtp);
 
 /**
  * @swagger
@@ -227,7 +229,7 @@ router.post('/verify-otp', validate(verifyOtpSchema), verifyOtp);
  *       400:
  *         description: Invalid Google token
  */
-router.post('/google', googleAuth);
+router.post("/google", googleAuth);
 
 /**
  * @swagger
@@ -256,7 +258,7 @@ router.post('/google', googleAuth);
  *       400:
  *         description: Invalid Facebook token
  */
-router.post('/facebook', facebookAuth);
+router.post("/facebook", facebookAuth);
 
 /**
  * @swagger
@@ -286,7 +288,7 @@ router.post('/facebook', facebookAuth);
  *       401:
  *         description: Invalid credentials or account not verified
  */
-router.post('/login', validate(loginSchema), login);
+router.post("/login", validate(loginSchema), login);
 
 /**
  * @swagger
@@ -300,7 +302,7 @@ router.post('/login', validate(loginSchema), login);
  *       401:
  *         description: No refresh token or invalid/expired refresh token
  */
-router.post('/refresh', refresh);
+router.post("/refresh", refresh);
 
 /**
  * @swagger
@@ -324,7 +326,7 @@ router.post('/refresh', refresh);
  *       200:
  *         description: OTP sent (or silent success if user doesn't exist)
  */
-router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
+router.post("/forgot-password", validate(forgotPasswordSchema), forgotPassword);
 
 /**
  * @swagger
@@ -365,6 +367,12 @@ router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
  *       400:
  *         description: Invalid OTP / validation error
  */
-router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
+router.post(
+  "/reset-password",
+  otpRateLimit,
+  validate(resetPasswordSchema),
+  resetPassword,
+);
+router.post("/logout", logout);
 
 export default router;

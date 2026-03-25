@@ -17,7 +17,8 @@ export const listDrivers = async (req: Request, res: Response) => {
   if (search) {
     where.user = {
       OR: [
-        { name: { contains: search, mode: 'insensitive' } },
+        { firstName: { contains: search, mode: 'insensitive' } },
+        // { name: { contains: search, mode: 'insensitive' } },
         { email: { contains: search, mode: 'insensitive' } },
         { phone: { contains: search } },
       ],
