@@ -10,16 +10,16 @@ router.use(adminAuth);
 /**
  * @swagger
  * tags:
- *   name: Riders
+ *   name: Admin Riders
  *   description: Admin rider management
  */
 
 /**
  * @swagger
- * /riders:
+ * /api/admin/riders:
  *   get:
  *     summary: List riders with pagination & filters
- *     tags: [Riders]
+ *     tags: [Admin Riders]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -36,14 +36,14 @@ router.use(adminAuth);
  *       200:
  *         description: Paginated riders list
  */
-router.get('/', listRiders);
+router.get('/riders', listRiders);
 
 /**
  * @swagger
- * /riders/{id}:
+ * /api/admin/riders/{id}:
  *   get:
  *     summary: Get rider details
- *     tags: [Riders]
+ *     tags: [Admin Riders]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -55,14 +55,14 @@ router.get('/', listRiders);
  *       200:
  *         description: Rider details
  */
-router.get('/:id', getRiderDetails);
+router.get('/riders/:id', getRiderDetails);
 
 /**
  * @swagger
- * /riders/{id}/suspend:
+ * /api/admin/riders/{id}/suspend:
  *   post:
  *     summary: Suspend rider account
- *     tags: [Riders]
+ *     tags: [Admin Riders]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -74,6 +74,6 @@ router.get('/:id', getRiderDetails);
  *       200:
  *         description: Rider suspended
  */
-router.post('/:id/suspend', suspendRider);
+router.post('/riders/:id/suspend', suspendRider);
 
 export default router;

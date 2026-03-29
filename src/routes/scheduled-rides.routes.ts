@@ -14,16 +14,16 @@ router.use(adminAuth);
 /**
  * @swagger
  * tags:
- *   name: ScheduledRides
+ *   name: Admin ScheduledRides
  *   description: Admin scheduled ride management
  */
 
 /**
  * @swagger
- * /scheduled-rides:
+ * /api/admin/scheduled-rides:
  *   get:
  *     summary: List scheduled rides with filters
- *     tags: [ScheduledRides]
+ *     tags: [Admin ScheduledRides]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -43,14 +43,14 @@ router.use(adminAuth);
  *       200:
  *         description: Paginated scheduled rides
  */
-router.get('/', listScheduledRides);
+router.get('/scheduled-rides', listScheduledRides);
 
 /**
  * @swagger
- * /scheduled-rides/{id}:
+ * /api/admin/scheduled-rides/{id}:
  *   get:
  *     summary: Get scheduled ride details
- *     tags: [ScheduledRides]
+ *     tags: [Admin ScheduledRides]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -62,14 +62,14 @@ router.get('/', listScheduledRides);
  *       200:
  *         description: Scheduled ride details
  */
-router.get('/:id', getScheduledRideDetails);
+router.get('/scheduled-rides/:id', getScheduledRideDetails);
 
 /**
  * @swagger
- * /scheduled-rides/{id}/status:
+ * /api/admin/scheduled-rides/{id}/status:
  *   patch:
  *     summary: Update scheduled ride status
- *     tags: [ScheduledRides]
+ *     tags: [Admin ScheduledRides]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -90,14 +90,14 @@ router.get('/:id', getScheduledRideDetails);
  *       200:
  *         description: Status updated
  */
-router.patch('/:id/status', updateScheduledRideStatus);
+router.patch('/scheduled-rides/:id/status', updateScheduledRideStatus);
 
 /**
  * @swagger
- * /scheduled-rides/{id}/assign-driver:
+ * /api/admin/scheduled-rides/{id}/assign-driver:
  *   post:
  *     summary: Assign driver to scheduled ride
- *     tags: [ScheduledRides]
+ *     tags: [Admin ScheduledRides]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -118,6 +118,6 @@ router.patch('/:id/status', updateScheduledRideStatus);
  *       200:
  *         description: Driver assigned
  */
-router.post('/:id/assign-driver', assignDriverToRide);
+router.post('/scheduled-rides/:id/assign-driver', assignDriverToRide);
 
 export default router;

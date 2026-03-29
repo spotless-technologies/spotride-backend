@@ -9,16 +9,16 @@ router.use(adminAuth);
 /**
  * @swagger
  * tags:
- *   name: Dashboard
+ *   name: Admin Dashboard
  *   description: Admin dashboard statistics and charts
  */
 
 /**
  * @swagger
- * /dashboard/stats:
+ * /api/admin/dashboard/stats:
  *   get:
  *     summary: Get dashboard overview statistics
- *     tags: [Dashboard]
+ *     tags: [Admin Dashboard]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -41,14 +41,14 @@ router.use(adminAuth);
  *       403:
  *         description: Forbidden (not admin)
  */
-router.get('/stats', getDashboardStats);
+router.get('/dashboard/stats', getDashboardStats);
 
 /**
  * @swagger
- * /dashboard/recent-activity:
+ * /api/admin/dashboard/recent-activity:
  *   get:
  *     summary: Get recent activity log
- *     tags: [Dashboard]
+ *     tags: [Admin Dashboard]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -65,14 +65,14 @@ router.get('/stats', getDashboardStats);
  *                   action: { type: string }
  *                   time: { type: string, format: date-time }
  */
-router.get('/recent-activity', getRecentActivity);
+router.get('/dashboard/recent-activity', getRecentActivity);
 
 /**
  * @swagger
- * /dashboard/revenue-trends:
+ * /api/admin/dashboard/revenue-trends:
  *   get:
  *     summary: Revenue trends over time
- *     tags: [Dashboard]
+ *     tags: [Admin Dashboard]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -88,14 +88,14 @@ router.get('/recent-activity', getRecentActivity);
  *                   date: { type: string }
  *                   revenue: { type: number }
  */
-router.get('/revenue-trends', getRevenueTrends);
+router.get('/dashboard/revenue-trends', getRevenueTrends);
 
 /**
  * @swagger
- * /dashboard/driver-rider-growth:
+ * /api/admin/dashboard/driver-rider-growth:
  *   get:
  *     summary: Driver & rider growth over time
- *     tags: [Dashboard]
+ *     tags: [Admin Dashboard]
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -112,6 +112,6 @@ router.get('/revenue-trends', getRevenueTrends);
  *                   drivers: { type: integer }
  *                   riders: { type: integer }
  */
-router.get('/driver-rider-growth', getDriverRiderGrowth);
+router.get('/dashboard/driver-rider-growth', getDriverRiderGrowth);
 
 export default router;

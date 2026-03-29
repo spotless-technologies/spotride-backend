@@ -9,16 +9,16 @@ router.use(adminAuth);
 /**
  * @swagger
  * tags:
- *   name: Drivers
+ *   name: Admin Drivers
  *   description: Admin driver management
  */
 
 /**
  * @swagger
- * /drivers:
+ * /api/admin/drivers:
  *   get:
  *     summary: List all drivers with pagination & filters
- *     tags: [Drivers]
+ *     tags: [Admin Drivers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -38,14 +38,14 @@ router.use(adminAuth);
  *       200:
  *         description: Paginated drivers list
  */
-router.get('/', listDrivers);
+router.get('/drivers', listDrivers);
 
 /**
  * @swagger
- * /drivers/{id}:
+ * /api/admin/drivers/{id}:
  *   get:
  *     summary: Get driver details
- *     tags: [Drivers]
+ *     tags: [Admin Drivers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -57,14 +57,14 @@ router.get('/', listDrivers);
  *       200:
  *         description: Driver details
  */
-router.get('/:id', getDriverDetails);
+router.get('/drivers/:id', getDriverDetails);
 
 /**
  * @swagger
- * /drivers/{id}/approve:
+ * /api/admin/drivers/{id}/approve:
  *   post:
  *     summary: Approve driver application
- *     tags: [Drivers]
+ *     tags: [Admin Drivers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -76,14 +76,14 @@ router.get('/:id', getDriverDetails);
  *       200:
  *         description: Driver approved
  */
-router.post('/:id/approve', approveDriver);
+router.post('/drivers/:id/approve', approveDriver);
 
 /**
  * @swagger
- * /drivers/{id}/reject:
+ * /api/admin/drivers/{id}/reject:
  *   post:
  *     summary: Reject driver application
- *     tags: [Drivers]
+ *     tags: [Admin Drivers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -104,14 +104,14 @@ router.post('/:id/approve', approveDriver);
  *       200:
  *         description: Driver rejected
  */
-router.post('/:id/reject', rejectDriver);
+router.post('/drivers/:id/reject', rejectDriver);
 
 /**
  * @swagger
- * /drivers/{id}/suspend:
+ * /api/admin/drivers/{id}/suspend:
  *   post:
  *     summary: Suspend driver
- *     tags: [Drivers]
+ *     tags: [Admin Drivers]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -123,6 +123,6 @@ router.post('/:id/reject', rejectDriver);
  *       200:
  *         description: Driver suspended
  */
-router.post('/:id/suspend', suspendDriver);
+router.post('/drivers/:id/suspend', suspendDriver);
 
 export default router;

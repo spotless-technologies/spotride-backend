@@ -199,6 +199,8 @@ model Trip {
   id        String   @id @default(uuid())
   riderId   String
   driverId  String?
+  pickupLocation  Json     // { lat: number, lng: number, address?: string }
+  dropoffLocation Json    // { lat: number, lng: number, address?: string }
   status    String // ongoing, completed, cancelled
   revenue   Float?
   rating    Float?

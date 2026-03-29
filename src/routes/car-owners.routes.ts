@@ -14,16 +14,16 @@ router.use(adminAuth);
 /**
  * @swagger
  * tags:
- *   name: CarOwners
+ *   name: Admin CarOwners
  *   description: Admin car owner management
  */
 
 /**
  * @swagger
- * /car-owners:
+ * /api/admin/car-owners:
  *   get:
  *     summary: List car owners with pagination & filters
- *     tags: [CarOwners]
+ *     tags: [Admin CarOwners]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -43,14 +43,14 @@ router.use(adminAuth);
  *       200:
  *         description: Paginated car owners list
  */
-router.get('/', listCarOwners);
+router.get('/car-owners', listCarOwners);
 
 /**
  * @swagger
- * /car-owners/{id}:
+ * /api/admin/car-owners/{id}:
  *   get:
  *     summary: Get car owner details
- *     tags: [CarOwners]
+ *     tags: [Admin CarOwners]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -62,14 +62,14 @@ router.get('/', listCarOwners);
  *       200:
  *         description: Car owner details
  */
-router.get('/:id', getCarOwnerDetails);
+router.get('/car-owners/:id', getCarOwnerDetails);
 
 /**
  * @swagger
- * /car-owners/{id}/approve:
+ * /api/admin/car-owners/{id}/approve:
  *   post:
  *     summary: Approve car owner
- *     tags: [CarOwners]
+ *     tags: [Admin CarOwners]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -81,14 +81,14 @@ router.get('/:id', getCarOwnerDetails);
  *       200:
  *         description: Car owner approved
  */
-router.post('/:id/approve', approveCarOwner);
+router.post('/car-owners/:id/approve', approveCarOwner);
 
 /**
  * @swagger
- * /car-owners/{id}/reject:
+ * /api/admin/car-owners/{id}/reject:
  *   post:
  *     summary: Reject car owner
- *     tags: [CarOwners]
+ *     tags: [Admin CarOwners]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -109,6 +109,6 @@ router.post('/:id/approve', approveCarOwner);
  *       200:
  *         description: Car owner rejected
  */
-router.post('/:id/reject', rejectCarOwner);
+router.post('/car-owners/:id/reject', rejectCarOwner);
 
 export default router;
