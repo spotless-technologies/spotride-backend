@@ -3,6 +3,7 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
+
 import authRoutes from './routes/auth.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import driversRoutes from './routes/drivers.routes';
@@ -10,6 +11,7 @@ import ridersRoutes from './routes/riders.routes';
 import carOwnersRoutes from './routes/car-owners.routes';
 import scheduledRidesRoutes from './routes/scheduled-rides.routes';
 import tripManagementRoutes from './routes/trip-management.routes';
+import carRentalListingsRoutes from './routes/car-rental-listings.routes';
 
 import driverProfileRoutes from './routes/driver-profile.routes';
 import driverStatusRoutes from './routes/driver-status.routes';
@@ -122,6 +124,7 @@ app.use('/api/admin', ridersRoutes);
 app.use('/api/admin', carOwnersRoutes);
 app.use('/api/admin', scheduledRidesRoutes);
 app.use('/api/admin', tripManagementRoutes);
+app.use('/api/admin', carRentalListingsRoutes);
 
 app.use('/driver', driverProfileRoutes);
 app.use('/driver', driverStatusRoutes);

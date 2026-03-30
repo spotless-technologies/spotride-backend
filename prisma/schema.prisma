@@ -112,6 +112,17 @@ model CarRental {
   description   String?
   images        String[] 
 
+  status          String   @default("pending") // pending, under_review, approved, rejected
+  verificationPercentage Int? @default(0)
+  submittedAt     DateTime @default(now())
+
+  registrationUrl String?
+  insuranceUrl    String?
+  licenseUrl      String?  
+  inspectionUrl   String?
+
+  rejectionReason     String?
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
