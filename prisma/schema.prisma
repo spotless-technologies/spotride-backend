@@ -144,6 +144,9 @@ model CarRentalBooking {
   totalPrice  Float?
   status      String    @default("pending") // pending, confirmed, active, completed, cancelled
 
+  returnNotes       String?   
+  adjustmentReason  String?   
+
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

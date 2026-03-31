@@ -12,6 +12,7 @@ import carOwnersRoutes from './routes/car-owners.routes';
 import scheduledRidesRoutes from './routes/scheduled-rides.routes';
 import tripManagementRoutes from './routes/trip-management.routes';
 import carRentalListingsRoutes from './routes/car-rental-listings.routes';
+import carRentalBookingsRoutes from './car-rental-bookings/car-rental-bookings.routes';
 
 import driverProfileRoutes from './routes/driver-profile.routes';
 import driverStatusRoutes from './routes/driver-status.routes';
@@ -84,7 +85,7 @@ servers: [
       },
     },
   },
-  apis: ['./src/routes/*.ts', './src/controllers/*.ts'],
+  apis: ['./src/routes/*.ts', './src/controllers/*.ts', './src/car-rental-bookings/*.ts', './src/**/*.routes.ts',],
 };
 
 const spec = swaggerJsdoc(swaggerOptions) as OpenAPIV3.Document;
@@ -125,6 +126,7 @@ app.use('/api/admin', carOwnersRoutes);
 app.use('/api/admin', scheduledRidesRoutes);
 app.use('/api/admin', tripManagementRoutes);
 app.use('/api/admin', carRentalListingsRoutes);
+app.use('/api/admin', carRentalBookingsRoutes);
 
 app.use('/driver', driverProfileRoutes);
 app.use('/driver', driverStatusRoutes);
