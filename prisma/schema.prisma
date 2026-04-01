@@ -189,6 +189,27 @@ model CarOwner {
   @@map("car_owners")
 }
 
+model VehicleCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  commissionRate Float   @default(15)
+
+  dailyMinRate   Float
+  dailyMaxRate   Float
+  weeklyMinRate  Float?
+  weeklyMaxRate  Float?
+  monthlyMinRate Float?
+  monthlyMaxRate Float?
+
+  status      Boolean  @default(true)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("vehicle_categories")
+}
+
 model ScheduledRide {
   id      String @id @default(uuid())
   riderId String
