@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { adminAuth } from '../middleware/admin';
+import { adminAuth } from '../../middleware/admin';
 import {
   listScheduledRides,
   getScheduledRideDetails,
   updateScheduledRideStatus,
   assignDriverToRide,
-} from '../controllers/scheduled-rides.controller';
+} from '../../controllers/admin/scheduled-rides.controller';
 
 const router = Router();
 

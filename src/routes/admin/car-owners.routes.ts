@@ -1,6 +1,11 @@
 import { Router } from 'express';
-import { adminAuth } from '../middleware/admin';
-import { approveDriver, getDriverDetails, listDrivers, rejectDriver, suspendDriver } from '../controllers/drivers.controller';
+import { adminAuth } from '../../middleware/admin';
+import {
+  listCarOwners,
+  getCarOwnerDetails,
+  approveCarOwner,
+  rejectCarOwner,
+} from '../../controllers/admin/car-owners.controller';
 
 const router = Router();
 
@@ -9,16 +14,16 @@ router.use(adminAuth);
 /**
  * @swagger
  * tags:
- *   name: Drivers
- *   description: Admin driver management
+ *   name: CarOwners
+ *   description: Admin car owner management
  */
 
 /**
  * @swagger
- * /drivers:
+ * /car-owners:
  *   get:
- *     summary: List all drivers with pagination & filters
- *     tags: [Drivers]
+ *     summary: List car owners with pagination & filters
+ *     tags: [CarOwners]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -33,19 +38,19 @@ router.use(adminAuth);
  *         schema: { type: string }
  *       - in: query
  *         name: status
- *         schema: { type: string, enum: [pending, approved, rejected, suspended] }
+ *         schema: { type: string, enum: [pending, approved, rejected] }
  *     responses:
  *       200:
- *         description: Paginated drivers list
+ *         description: Paginated car owners list
  */
-router.get('/', listDrivers);
+router.get('/', listCarOwners);
 
 /**
  * @swagger
- * /drivers/{id}:
+ * /car-owners/{id}:
  *   get:
- *     summary: Get driver details
- *     tags: [Drivers]
+ *     summary: Get car owner details
+ *     tags: [CarOwners]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -55,16 +60,16 @@ router.get('/', listDrivers);
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Driver details
+ *         description: Car owner details
  */
-router.get('/:id', getDriverDetails);
+router.get('/:id', getCarOwnerDetails);
 
 /**
  * @swagger
- * /drivers/{id}/approve:
+ * /car-owners/{id}/approve:
  *   post:
- *     summary: Approve driver application
- *     tags: [Drivers]
+ *     summary: Approve car owner
+ *     tags: [CarOwners]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -74,16 +79,16 @@ router.get('/:id', getDriverDetails);
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: Driver approved
+ *         description: Car owner approved
  */
-router.post('/:id/approve', approveDriver);
+router.post('/:id/approve', approveCarOwner);
 
 /**
  * @swagger
- * /drivers/{id}/reject:
+ * /car-owners/{id}/reject:
  *   post:
- *     summary: Reject driver application
- *     tags: [Drivers]
+ *     summary: Reject car owner
+ *     tags: [CarOwners]
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -102,27 +107,8 @@ router.post('/:id/approve', approveDriver);
  *               reason: { type: string }
  *     responses:
  *       200:
- *         description: Driver rejected
+ *         description: Car owner rejected
  */
-router.post('/:id/reject', rejectDriver);
-
-/**
- * @swagger
- * /drivers/{id}/suspend:
- *   post:
- *     summary: Suspend driver
- *     tags: [Drivers]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema: { type: string, format: uuid }
- *     responses:
- *       200:
- *         description: Driver suspended
- */
-router.post('/:id/suspend', suspendDriver);
+router.post('/:id/reject', rejectCarOwner);
 
 export default router;

@@ -212,6 +212,39 @@ export const login = async (req: Request, res: Response) => {
   }
 };
 
+// ====================== ADMIN LOGIN ======================
+export const adminLogin = async (req: Request, res: Response) => {
+  try {
+    const { identifier, password } = req.body;
+
+    const user = await findUserByIdentifier(identifier);
+    if (!user || !user.verified || !user.password) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    if (user.role !== 'ADMIN') {
+      return res.status(403).json({ message: 'Access denied. Administrator privileges required.' });
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) return res.status(401).json({ message: 'Invalid credentials' });
+
+    const { accessToken, refreshToken } = await generateTokens(user.id);
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+    
+    // Return detailed user object to hydrate Redux on the frontend
+    res.json({ accessToken, user: { id: user.id, email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role } });
+  } catch (error) {
+    console.error('adminLogin error:', error);
+    res.status(500).json({ message: 'Admin login failed. Please try again.' });
+  }
+};
+
 // ====================== LOGOUT (NEW) ======================
 export const logout = async (req: Request, res: Response) => {
   try {

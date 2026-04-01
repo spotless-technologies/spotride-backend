@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { adminAuth } from '../middleware/admin';
-import { getDashboardStats, getDriverRiderGrowth, getRecentActivity, getRevenueTrends } from '../controllers/dashboard.controller';
+import { adminAuth } from '../../middleware/admin';
+import { getDashboardStats, getDriverRiderGrowth, getRecentActivity, getRevenueTrends } from '../../controllers/admin/dashboard.controller';
 
 const router = Router();
 

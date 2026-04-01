@@ -7,6 +7,7 @@ import {
   googleAuth,
   facebookAuth,
   login,
+  adminLogin,
   logout,
   refresh,
   forgotPassword,
@@ -289,6 +290,40 @@ router.post("/facebook", facebookAuth);
  *         description: Invalid credentials or account not verified
  */
 router.post("/login", validate(loginSchema), login);
+
+/**
+ * @swagger
+ * /api/auth/admin-login:
+ *   post:
+ *     summary: Restricted login for administrative dashboard
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - identifier
+ *               - password
+ *             properties:
+ *               identifier:
+ *                 type: string
+ *                 example: admin@spotride.com
+ *               password:
+ *                 type: string
+ *                 example: Passw0rd123
+ *     responses:
+ *       200:
+ *         description: Admin login successful
+ *       401:
+ *         description: Invalid credentials
+ *       403:
+ *         description: User lacks ADMIN role
+ *       404:
+ *         description: Admin user not found
+ */
+router.post("/admin-login", validate(loginSchema), adminLogin);
 
 /**
  * @swagger

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { adminAuth } from '../middleware/admin';
-import { getRiderDetails, listRiders, suspendRider } from '../controllers/riders.controller';
+import { adminAuth } from '../../middleware/admin';
+import { getRiderDetails, listRiders, suspendRider } from '../../controllers/admin/riders.controller';
 
 
 const router = Router();
