@@ -8,7 +8,7 @@ import {
   getRatingSummary,
   uploadDocuments,
   getDocuments,
-} from '../controllers/driver-profile.controller';
+} from './driver-profile.controller';
 import { validate } from '../middleware/validate';
 import { updateProfileSchema } from '../schemas/driver.schema';
 
@@ -20,8 +20,10 @@ router.use(driverAuth);
  * @swagger
  * tags:
  *   name: Driver Profile
- *   description: Driver profile management, photo upload, documents, and rating
+ *   description: Driver profile management, photo upload, documents, rating, and vehicle information
  */
+
+// ==================== PROFILE ====================
 
 /**
  * @swagger
@@ -44,11 +46,8 @@ router.use(driverAuth);
  *                 photo: { type: string, nullable: true }
  *                 rating: { type: number }
  *                 vehicleModel: { type: string, nullable: true }
+ *                 vehicleType: { type: string, enum: [SEDAN, SUV, MINIVAN_XL, LUXURY, ELECTRIC_HYBRID] }
  *                 isOnline: { type: boolean }
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Not a driver or admin
  *       404:
  *         description: Driver profile not found
  */
@@ -58,7 +57,7 @@ router.get('/profile', getProfile);
  * @swagger
  * /driver/profile:
  *   put:
- *     summary: Update driver's profile information
+ *     summary: Update driver profile information
  *     tags: [Driver Profile]
  *     security:
  *       - bearerAuth: []
@@ -69,11 +68,16 @@ router.get('/profile', getProfile);
  *           schema:
  *             type: object
  *             properties:
- *               firstName: { type: string, minLength: 2 }
- *               lastName: { type: string, minLength: 2 }
- *               vehicleModel: { type: string }
- *               vehiclePlate: { type: string }
- *               vehicleColor: { type: string }
+ *               firstName: { type: string, minLength: 2, example: "John" }
+ *               lastName: { type: string, minLength: 2, example: "Doe" }
+ *               vehicleModel: { type: string, example: "Toyota Camry" }
+ *               vehiclePlate: { type: string, example: "ABC-1234" }
+ *               vehicleColor: { type: string, example: "Black" }
+ *               vehicleType: { 
+ *                 type: string, 
+ *                 enum: [SEDAN, SUV, MINIVAN_XL, LUXURY, ELECTRIC_HYBRID],
+ *                 example: "SUV"
+ *               }
  *     responses:
  *       200:
  *         description: Profile updated successfully
@@ -102,7 +106,7 @@ router.put('/profile', validate(updateProfileSchema), updateProfile);
  *                 format: binary
  *     responses:
  *       200:
- *         description: Photo uploaded successfully
+ *         description: Profile photo uploaded successfully
  *       400:
  *         description: No file uploaded or invalid file
  */
@@ -112,13 +116,13 @@ router.post('/profile/photo', uploadSingle.single('photo'), uploadProfilePhoto);
  * @swagger
  * /driver/rating:
  *   get:
- *     summary: Get driver's current rating summary
+ *     summary: Get driver's current rating and review summary
  *     tags: [Driver Profile]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Rating and total reviews
+ *         description: Rating summary
  *         content:
  *           application/json:
  *             schema:
@@ -129,11 +133,13 @@ router.post('/profile/photo', uploadSingle.single('photo'), uploadProfilePhoto);
  */
 router.get('/rating', getRatingSummary);
 
+// ==================== DOCUMENTS ====================
+
 /**
  * @swagger
  * /driver/documents:
  *   post:
- *     summary: Upload KYC documents (license, vehicle registration, insurance)
+ *     summary: Upload KYC and vehicle documents (supports multiple files)
  *     tags: [Driver Profile]
  *     security:
  *       - bearerAuth: []
@@ -144,7 +150,15 @@ router.get('/rating', getRatingSummary);
  *           schema:
  *             type: object
  *             properties:
- *               license: { type: string, format: binary }
+ *               license:
+ *                 type: array
+ *                 items: { type: string, format: binary }
+ *               governmentId:
+ *                 type: array
+ *                 items: { type: string, format: binary }
+ *               vehicleDocuments:
+ *                 type: array
+ *                 items: { type: string, format: binary }
  *               vehicleReg: { type: string, format: binary }
  *               insurance: { type: string, format: binary }
  *     responses:
@@ -156,7 +170,9 @@ router.get('/rating', getRatingSummary);
 router.post(
   '/documents',
   uploadFields.fields([
-    { name: 'license', maxCount: 1 },
+    { name: 'license', maxCount: 5 },
+    { name: 'governmentId', maxCount: 5 },
+    { name: 'vehicleDocuments', maxCount: 10 },
     { name: 'vehicleReg', maxCount: 1 },
     { name: 'insurance', maxCount: 1 },
   ]),
@@ -167,18 +183,21 @@ router.post(
  * @swagger
  * /driver/documents:
  *   get:
- *     summary: Get list and verification status of uploaded documents
+ *     summary: Get all uploaded documents and verification status
  *     tags: [Driver Profile]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Document URLs and verification status
+ *         description: List of document URLs and status
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
+ *                 licenseUrls: { type: array, items: { type: string } }
+ *                 governmentIdUrls: { type: array, items: { type: string } }
+ *                 vehicleDocumentUrls: { type: array, items: { type: string } }
  *                 licenseUrl: { type: string, nullable: true }
  *                 vehicleRegUrl: { type: string, nullable: true }
  *                 insuranceUrl: { type: string, nullable: true }

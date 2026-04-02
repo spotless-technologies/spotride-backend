@@ -20,6 +20,14 @@ enum UserRole {
   ADMIN
 }
 
+enum VehicleType {
+  SEDAN
+  SUV
+  MINIVAN_XL
+  LUXURY
+  ELECTRIC_HYBRID
+}
+
 model User {
   id         String   @id @default(uuid())
   email      String?  @unique
@@ -62,10 +70,16 @@ model Driver {
   accountNumber       String?
   accountName         String?
 
+  vehicleType       VehicleType?
   vehicleModel      String?
   vehiclePlate      String?   @unique
   vehicleColor      String?
   vehicleYear       Int?
+
+  licenseUrls       String[]       // array of S3 URLs
+  governmentIdUrls  String[]       // NIN / Government ID
+  vehicleDocumentUrls String[]     // Vehicle documents (multiple)
+
   licenseNumber     String?   @unique
   licenseExpiry     DateTime?
   licenseUrl          String?   // S3 URL
