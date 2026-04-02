@@ -14,6 +14,7 @@ import tripManagementRoutes from './routes/trip-management.routes';
 import carRentalListingsRoutes from './routes/car-rental-listings.routes';
 import carRentalBookingsRoutes from './car-rental-bookings/car-rental-bookings.routes';
 import carRentalPricingAndCategoriesRoutes from './car-rental-pricing-and-categories/car-rental-pricing-and-categories.routes';
+import disputesRoutes from './disputes-and-complaints/disputes-and-complaints.routes';
 
 import driverProfileRoutes from './driver-profile/driver-profile.routes';
 import driverStatusRoutes from './routes/driver-status.routes';
@@ -129,6 +130,7 @@ app.use('/api/admin', tripManagementRoutes);
 app.use('/api/admin', carRentalListingsRoutes);
 app.use('/api/admin', carRentalBookingsRoutes);
 app.use('/api/admin', carRentalPricingAndCategoriesRoutes);
+app.use('/api/admin', disputesRoutes);
 
 app.use('/driver', driverProfileRoutes);
 app.use('/driver', driverStatusRoutes);
