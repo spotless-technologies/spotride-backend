@@ -17,6 +17,7 @@ import carRentalPricingAndCategoriesRoutes from './car-rental-pricing-and-catego
 import disputesRoutes from './disputes-and-complaints/disputes-and-complaints.routes';
 import liveRentalMonitoringRoutes from './live-rental-monitoring/live-rental-monitoring.routes';
 import supportAnalyticsRoutes from './support-and-analytics/support-and-analytics.routes';
+import hubCityManagementRoutes from './hub-and-city-management/hub-and-city-management.routes';
 
 import driverProfileRoutes from './driver-profile/driver-profile.routes';
 import driverStatusRoutes from './routes/driver-status.routes';
@@ -31,6 +32,7 @@ import driverSettingsRoutes from './routes/driver-settings.routes';
 import prisma from './config/prisma';
 import cors from 'cors';
 import type { OpenAPIV3 } from 'openapi-types';
+import { errorHandler } from "./middleware/error-handler";
 
 const app = express();
 
@@ -135,6 +137,7 @@ app.use('/api/admin', carRentalPricingAndCategoriesRoutes);
 app.use('/api/admin', disputesRoutes);
 app.use('/api/admin', liveRentalMonitoringRoutes);
 app.use('/api/admin', supportAnalyticsRoutes);
+app.use('/api/admin', hubCityManagementRoutes);
 
 app.use('/driver', driverProfileRoutes);
 app.use('/driver', driverStatusRoutes);
@@ -145,6 +148,8 @@ app.use('/driver', driverMapRoutes);
 app.use('/driver', driverNotificationsRoutes);
 app.use('/driver', driverVehicleRoutes);
 app.use('/driver', driverSettingsRoutes);
+
+app.use(errorHandler);
 
 // Root endpoint
 app.get('/', (req, res) => {

@@ -290,6 +290,43 @@ model Trip {
   @@map("trips")
 }
 
+model City {
+  id           String   @id @default(uuid())
+  name         String
+  state        String
+  country      String   @default("Nigeria")
+  latitude     Float
+  longitude    Float
+  serviceZones String[]
+  isActive     Boolean  @default(true)
+
+  hubs         Hub[]
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("cities")
+}
+
+model Hub {
+  id               String   @id @default(uuid())
+  name             String
+  address          String
+  cityId           String
+  city             City     @relation(fields: [cityId], references: [id])
+  latitude         Float
+  longitude        Float
+  capacity         Int
+  operatingHours   String   @default("24/7")
+  assignedDrivers  Int      @default(0)
+  isActive         Boolean  @default(true)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@map("hubs")
+}
+
 model Notification {
   id        String   @id @default(uuid())
   userId    String
