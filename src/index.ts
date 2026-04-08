@@ -18,6 +18,7 @@ import disputesRoutes from './disputes-and-complaints/disputes-and-complaints.ro
 import liveRentalMonitoringRoutes from './live-rental-monitoring/live-rental-monitoring.routes';
 import supportAnalyticsRoutes from './support-and-analytics/support-and-analytics.routes';
 import hubCityManagementRoutes from './hub-and-city-management/hub-and-city-management.routes';
+import courierManagementRoutes from './courier-management-operations/courier-management-operations.routes';
 
 import driverProfileRoutes from './driver-profile/driver-profile.routes';
 import driverStatusRoutes from './routes/driver-status.routes';
@@ -138,6 +139,7 @@ app.use('/api/admin', disputesRoutes);
 app.use('/api/admin', liveRentalMonitoringRoutes);
 app.use('/api/admin', supportAnalyticsRoutes);
 app.use('/api/admin', hubCityManagementRoutes);
+app.use('/api/admin', courierManagementRoutes);
 
 app.use('/driver', driverProfileRoutes);
 app.use('/driver', driverStatusRoutes);

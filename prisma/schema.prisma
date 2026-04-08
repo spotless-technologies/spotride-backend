@@ -108,6 +108,8 @@ model Driver {
 
   carRentalBookings   CarRentalBooking[]
 
+  courier         Courier?
+
   @@map("drivers")
 }
 
@@ -325,6 +327,49 @@ model Hub {
   updatedAt        DateTime @updatedAt
 
   @@map("hubs")
+}
+
+model Courier {
+  id              String   @id @default(uuid())
+  driverId        String   @unique
+  driver          Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  vehicleType     String   // "Bike", "Car"
+  status          String   @default("Offline") // Online, Offline, On Delivery, Suspended
+
+  rating          Float    @default(0.0)
+  totalDeliveries Int      @default(0)
+  successRate     Float    @default(0.0)
+
+  isActive        Boolean  @default(true)
+
+  deliveries      Delivery[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("couriers")
+}
+
+model Delivery {
+  id              String   @id @default(uuid())
+  trackingNumber  String   @unique
+
+  courierId       String
+  courier         Courier  @relation(fields: [courierId], references: [id], onDelete: Cascade)
+
+  pickupLocation  Json
+  dropoffLocation Json
+  fare            Float?
+
+  status          String   @default("In Transit") // In Transit, Delivered, Failed, Cancelled
+
+  category        String   // Food & Beverages, Electronics, Documents, Groceries, Fragile Items, Retail Goods, Medical Supplies
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("deliveries")
 }
 
 model Notification {
