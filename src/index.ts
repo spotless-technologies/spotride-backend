@@ -30,6 +30,8 @@ import driverNotificationsRoutes from './routes/driver-notifications.routes';
 import driverVehicleRoutes from './routes/driver-vehicle.routes';
 import driverSettingsRoutes from './routes/driver-settings.routes';
 
+import rideBookingRoutes from './ride-booking/ride-booking.routes';
+
 import prisma from './config/prisma';
 import cors from 'cors';
 import type { OpenAPIV3 } from 'openapi-types';
@@ -150,6 +152,8 @@ app.use('/driver', driverMapRoutes);
 app.use('/driver', driverNotificationsRoutes);
 app.use('/driver', driverVehicleRoutes);
 app.use('/driver', driverSettingsRoutes);
+
+app.use('/api', rideBookingRoutes);
 
 app.use(errorHandler);
 

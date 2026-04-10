@@ -18,6 +18,12 @@ const envSchema = z.object({
   AWS_SECRET_ACCESS_KEY: z.string().min(30),
   AWS_REGION:            z.string().min(4),           
   AWS_S3_BUCKET_NAME:    z.string().min(3),
+  RIDE_BASE_FARE: z.coerce.number().positive(),
+  RIDE_RATE_PER_KM: z.coerce.number().positive(),
+  RIDE_RATE_PER_MIN: z.coerce.number().positive(),
+  RIDE_BOOKING_FEE: z.coerce.number().positive(),
+  RIDE_AVG_SPEED_KMH: z.coerce.number().positive(),
+  RIDE_DEFAULT_CURRENCY: z.string().min(3).default("NGN"),
 });
 
 const env = envSchema.parse(process.env);

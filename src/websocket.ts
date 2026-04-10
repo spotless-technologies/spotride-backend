@@ -87,6 +87,58 @@ export const setupSocketIO = (httpServer: HttpServer) => {
       }
     })();
 
+     // === REAL-TIME RIDE MATCHING ENGINE ===
+
+    // Rider requests matching (call after successful /rides/request)
+    socket.on('ride:request-matching', async (tripId: string) => {
+      if (!socket.userId) return;
+
+      const onlineDrivers = await prisma.driver.findMany({
+        where: { isOnline: true, status: 'approved' },
+        select: { id: true },
+      });
+
+      onlineDrivers.forEach((driver) => {
+        io.to(`driver-room-${driver.id}`).emit('ride:new-request', {
+          tripId,
+          timestamp: new Date()
+        });
+      });
+
+      await prisma.trip.update({
+        where: { id: tripId },
+        data: { status: "SEARCHING_DRIVER" },
+      });
+    });
+
+    // Driver accepts ride
+    socket.on('ride:accept', async ({ tripId }: { tripId: string }) => {
+      if (!socket.driverId) return;
+
+      try {
+        const trip = await prisma.trip.update({
+          where: { id: tripId, status: "SEARCHING_DRIVER" },
+          data: {
+            driverId: socket.driverId,
+            status: "DRIVER_ASSIGNED"
+          },
+        });
+
+        io.to(`rider-room-${trip.riderId}`).emit('ride:driver-accepted', {
+          tripId,
+          driverId: socket.driverId,
+        });
+
+        io.emit('ride:removed', { tripId });
+      } catch (err) {
+        socket.emit('ride:error', { message: 'Failed to accept ride' });
+      }
+    });
+
+    // Join personal rooms
+    if (socket.driverId) socket.join(`driver-room-${socket.driverId}`);
+    if (socket.userId) socket.join(`rider-room-${socket.userId}`);
+
     socket.on('disconnect', () => {
       console.log(`Driver disconnected: ${socket.driverId || 'unknown'}`);
     });
