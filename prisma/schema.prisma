@@ -106,6 +106,12 @@ model Driver {
   scheduledRides ScheduledRide[]
   trips          Trip[]
 
+  vehicleFeatures     String[]  @default([])   // e.g. ["navigation", "air-conditioning"]
+  vehiclePhotos       String[]  @default([])   // S3 URLs for front, back, interior, etc.
+  insuranceExpiry     DateTime?
+  registrationExpiry  DateTime?
+  inspectionExpiry    DateTime?
+
   carRentalBookings   CarRentalBooking[]
 
   courier         Courier?

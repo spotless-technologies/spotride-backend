@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import * as driverProfileService from './driver-profile.service';
-import { DriverRequest } from '../middleware/driver';
-import { updateProfileSchema } from '../schemas/driver.schema';
+import { DriverRequest } from '../../middleware/driver';
+import { updateProfileSchema } from '../../schemas/driver.schema';
 import { z } from 'zod';
 
 export const getProfile = async (req: DriverRequest, res: Response) => {
@@ -41,15 +41,15 @@ export const getRatingSummary = async (req: DriverRequest, res: Response) => {
   res.json(result);
 };
 
-export const uploadDocuments = async (req: DriverRequest, res: Response) => {
-  const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
-  if (!files) return res.status(400).json({ message: 'No files uploaded' });
+// export const uploadDocuments = async (req: DriverRequest, res: Response) => {
+//   const files = req.files as { [key: string]: Express.Multer.File[] } | undefined;
+//   if (!files) return res.status(400).json({ message: 'No files uploaded' });
 
-  const result = await driverProfileService.uploadDocuments(req.driver!.driverId, files);
-  res.json(result);
-};
+//   const result = await driverProfileService.uploadDocuments(req.driver!.driverId, files);
+//   res.json(result);
+// };
 
-export const getDocuments = async (req: DriverRequest, res: Response) => {
-  const documents = await driverProfileService.getDocuments(req.driver!.driverId);
-  res.json(documents);
-};
+// export const getDocuments = async (req: DriverRequest, res: Response) => {
+//   const documents = await driverProfileService.getDocuments(req.driver!.driverId);
+//   res.json(documents);
+// };
