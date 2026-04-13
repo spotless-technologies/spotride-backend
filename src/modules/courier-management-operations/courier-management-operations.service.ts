@@ -1,4 +1,4 @@
-import prisma from '../config/prisma';
+import prisma from '../../config/prisma';
 
 export const getCourierStats = async () => {
   const [activeDrivers, inProgress, todaysCompleted, dailyRevenue] = await Promise.all([
