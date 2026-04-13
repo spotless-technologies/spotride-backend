@@ -35,7 +35,7 @@ import driverVehicleRoutes from './modules/driver-vehicle/driver-vehicle.routes'
 import driverDocumentsRoutes from './modules/driver-documents/driver-documents.routes';
 
 
-import rideBookingRoutes from './ride-booking/ride-booking.routes';
+import rideBookingRoutes from './modules/ride-booking/ride-booking.routes';
 
 import prisma from './config/prisma';
 import cors from 'cors';

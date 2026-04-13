@@ -24,6 +24,9 @@ const envSchema = z.object({
   RIDE_BOOKING_FEE: z.coerce.number().positive(),
   RIDE_AVG_SPEED_KMH: z.coerce.number().positive(),
   RIDE_DEFAULT_CURRENCY: z.string().min(3).default("NGN"),
+  RIDE_COMMISSION_RATE: z.coerce.number().min(0).max(1).default(0.20), // 20%
+  PAYSTACK_SECRET_KEY: z.string().min(10),
+  PAYSTACK_PUBLIC_KEY: z.string().min(10),
 });
 
 const env = envSchema.parse(process.env);

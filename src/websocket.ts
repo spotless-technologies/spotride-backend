@@ -5,8 +5,9 @@ import env from './config/env';
 import prisma from './config/prisma';
 
 interface AuthenticatedSocket extends Socket {
-  driverId?: string;
   userId?: string;
+  driverId?: string;
+  role?: string;
 }
 
 export const setupSocketIO = (httpServer: HttpServer) => {
@@ -18,10 +19,10 @@ export const setupSocketIO = (httpServer: HttpServer) => {
     },
   });
 
-  // Socket authentication middleware
+  // Authentication Middleware
   io.use(async (socket: AuthenticatedSocket, next) => {
     const token = socket.handshake.auth.token;
-    if (!token) return next(new Error('Authentication error'));
+    if (!token) return next(new Error('Authentication error: No token'));
 
     try {
       const decoded = jwt.verify(token, env.JWT_SECRET) as { userId: string };
@@ -32,76 +33,50 @@ export const setupSocketIO = (httpServer: HttpServer) => {
 
       if (!user) return next(new Error('User not found'));
 
-      if (user.role !== 'DRIVER' && user.role !== 'ADMIN') {
-        return next(new Error('Driver or Admin required'));
-      }
-
-      const driver = await prisma.driver.findFirst({
-        where: { userId: user.id },
-        select: { id: true },
-      });
-
       socket.userId = user.id;
-      socket.driverId = driver?.id;
+      socket.role = user.role;
+
+      // If driver, fetch driver profile
+      if (user.role === 'DRIVER') {
+        const driver = await prisma.driver.findUnique({
+          where: { userId: user.id },
+          select: { id: true },
+        });
+        socket.driverId = driver?.id;
+      }
 
       next();
     } catch (err) {
-      next(new Error('Invalid token'));
+      next(new Error('Invalid or expired token'));
     }
   });
 
   io.on('connection', (socket: AuthenticatedSocket) => {
-    console.log(`Driver connected: ${socket.driverId || 'unknown'}`);
+    console.log(`Socket connected - User: ${socket.userId}, Role: ${socket.role}, Driver: ${socket.driverId}`);
 
-    // Real-time location streaming
+    // Real-time location update (Driver only)
     socket.on('location-update', async (data: { lat: number; lng: number }) => {
       if (!socket.driverId) return;
-
       await prisma.driver.update({
         where: { id: socket.driverId },
-        data: {
-          currentLocation: data,
-          lastLocationUpdate: new Date(),
-        },
+        data: { currentLocation: data, lastLocationUpdate: new Date() },
       });
-
-      io.to('admins').emit('driver-location-updated', {
-        driverId: socket.driverId,
-        location: data,
-        timestamp: new Date(),
-      });
+      io.to('admins').emit('driver-location-updated', { driverId: socket.driverId, location: data });
     });
 
-    // Check if admin and join room
-    (async () => {
-      if (socket.userId) {
-        const user = await prisma.user.findUnique({
-          where: { id: socket.userId },
-          select: { role: true },
-        });
-
-        if (user?.role === 'ADMIN') {
-          socket.join('admins');
-          console.log(`Admin ${socket.userId} joined admins room`);
-        }
-      }
-    })();
-
-     // === REAL-TIME RIDE MATCHING ENGINE ===
-
-    // Rider requests matching (call after successful /rides/request)
+    // === REAL-TIME RIDE MATCHING ENGINE ===
     socket.on('ride:request-matching', async (tripId: string) => {
       if (!socket.userId) return;
 
       const onlineDrivers = await prisma.driver.findMany({
         where: { isOnline: true, status: 'approved' },
-        select: { id: true },
+        select: { id: true, userId: true },
       });
 
       onlineDrivers.forEach((driver) => {
         io.to(`driver-room-${driver.id}`).emit('ride:new-request', {
           tripId,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       });
 
@@ -111,24 +86,22 @@ export const setupSocketIO = (httpServer: HttpServer) => {
       });
     });
 
-    // Driver accepts ride
     socket.on('ride:accept', async ({ tripId }: { tripId: string }) => {
       if (!socket.driverId) return;
 
       try {
         const trip = await prisma.trip.update({
           where: { id: tripId, status: "SEARCHING_DRIVER" },
-          data: {
-            driverId: socket.driverId,
-            status: "DRIVER_ASSIGNED"
-          },
+          data: { driverId: socket.driverId, status: "DRIVER_ASSIGNED" },
         });
 
+        // Notify rider
         io.to(`rider-room-${trip.riderId}`).emit('ride:driver-accepted', {
           tripId,
           driverId: socket.driverId,
         });
 
+        // Remove request from other drivers
         io.emit('ride:removed', { tripId });
       } catch (err) {
         socket.emit('ride:error', { message: 'Failed to accept ride' });
@@ -139,8 +112,11 @@ export const setupSocketIO = (httpServer: HttpServer) => {
     if (socket.driverId) socket.join(`driver-room-${socket.driverId}`);
     if (socket.userId) socket.join(`rider-room-${socket.userId}`);
 
+    // Admin room
+    if (socket.role === 'ADMIN') socket.join('admins');
+
     socket.on('disconnect', () => {
-      console.log(`Driver disconnected: ${socket.driverId || 'unknown'}`);
+      console.log(`Socket disconnected - User: ${socket.userId}`);
     });
   });
 

@@ -57,6 +57,7 @@ model User {
   scheduledRides ScheduledRide[] @relation("RiderScheduledRides")
   trips          Trip[]
   notifications  Notification[]
+  wallet         Wallet?
 
   @@map("users")
 }
@@ -293,12 +294,21 @@ model Trip {
   actualFare      Float?
   currency        String    @default("NGN")
   status          String    @default("REQUESTED") // REQUESTED, SEARCHING_DRIVER, DRIVER_ASSIGNED, DRIVER_ARRIVED, IN_PROGRESS, COMPLETED, CANCELLED
-  rideType        String    @default("ECONOMY") // ECONOMY, COMFORT, LUXURY
+  rideType        String    @default("REGULAR")   // REGULAR, STANDARD, PREMIUM
   surgeMultiplier Float?    @default(1.0)
   startTime       DateTime?
   endTime         DateTime?
   revenue         Float?
   rating          Float?
+
+  paymentMethod    String? // "CASH" | "CARD" | "WALLET"
+  paymentStatus    String  @default("PENDING") // PENDING, PAID, FAILED
+  commissionAmount Float?
+  promoCode        String?
+  riderRating      Float?
+  riderFeedback    String?
+
+  payment Payment?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -307,6 +317,36 @@ model Trip {
   driver Driver? @relation(fields: [driverId], references: [id])
 
   @@map("trips")
+}
+
+model Wallet {
+  id      String @id @default(uuid())
+  balance Float  @default(0)
+  userId  String @unique
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("wallets")
+}
+
+model Payment {
+  id     String @id @default(uuid())
+  tripId String @unique
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  amount         Float
+  currency       String    @default("NGN")
+  method         String // CASH, CARD, WALLET
+  status         String    @default("PENDING")
+  transactionRef String? // Paystack reference
+  paidAt         DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("payments")
 }
 
 model City {
