@@ -29,24 +29,24 @@ enum VehicleType {
 }
 
 model User {
-  id         String   @id @default(uuid())
-  email      String?  @unique
-  phone      String?  @unique
-  firstName  String
-  lastName   String
-  password   String?
-  provider   String? // "local" | "google" | "facebook"
-  providerId String?  @unique
-  verified   Boolean  @default(false)
-  role       UserRole @default(RIDER)
-  profilePicture    String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  fcmToken          String?
+  id             String   @id @default(uuid())
+  email          String?  @unique
+  phone          String?  @unique
+  firstName      String
+  lastName       String
+  password       String?
+  provider       String? // "local" | "google" | "facebook"
+  providerId     String?  @unique
+  verified       Boolean  @default(false)
+  role           UserRole @default(RIDER)
+  profilePicture String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  fcmToken       String?
 
-  language              String?   @default("en")    // e.g. "en", "fr", "yo"
-  pushNotifications     Boolean   @default(true)
-  navigationPreference  String?   @default("google") // e.g. "google", "waze", "apple"
+  language             String? @default("en") // e.g. "en", "fr", "yo"
+  pushNotifications    Boolean @default(true)
+  navigationPreference String? @default("google") // e.g. "google", "waze", "apple"
 
   refreshTokens     RefreshToken[]
   verificationCodes VerificationCode[]
@@ -56,7 +56,7 @@ model User {
   carOwner       CarOwner?
   scheduledRides ScheduledRide[] @relation("RiderScheduledRides")
   trips          Trip[]
-  notifications     Notification[]
+  notifications  Notification[]
 
   @@map("users")
 }
@@ -66,25 +66,25 @@ model Driver {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  bankName            String?
-  accountNumber       String?
-  accountName         String?
+  bankName      String?
+  accountNumber String?
+  accountName   String?
 
-  vehicleType       VehicleType?
-  vehicleModel      String?
-  vehiclePlate      String?   @unique
-  vehicleColor      String?
-  vehicleYear       Int?
+  vehicleType  VehicleType?
+  vehicleModel String?
+  vehiclePlate String?      @unique
+  vehicleColor String?
+  vehicleYear  Int?
 
-  licenseUrls       String[]       // array of S3 URLs
-  governmentIdUrls  String[]       // NIN / Government ID
-  vehicleDocumentUrls String[]     // Vehicle documents (multiple)
+  licenseUrls         String[] // array of S3 URLs
+  governmentIdUrls    String[] // NIN / Government ID
+  vehicleDocumentUrls String[] // Vehicle documents (multiple)
 
   licenseNumber     String?   @unique
   licenseExpiry     DateTime?
-  licenseUrl          String?   // S3 URL
-  vehicleRegUrl       String?   // S3 URL
-  insuranceUrl        String?   // S3 URL
+  licenseUrl        String? // S3 URL
+  vehicleRegUrl     String? // S3 URL
+  insuranceUrl      String? // S3 URL
   documentsVerified Boolean   @default(false)
 
   status           String    @default("pending") // pending, approved, rejected, suspended
@@ -93,105 +93,108 @@ model Driver {
   suspendedAt      DateTime?
   suspensionReason String?
 
-  rating     Float @default(0.0)
-  totalTrips Int   @default(0)
-  totalEarnings       Float     @default(0.0)
+  rating        Float @default(0.0)
+  totalTrips    Int   @default(0)
+  totalEarnings Float @default(0.0)
 
-  isOnline            Boolean   @default(false)
-  currentLocation     Json?     
-  lastLocationUpdate  DateTime? @db.Timestamp
+  isOnline           Boolean   @default(false)
+  currentLocation    Json?
+  lastLocationUpdate DateTime? @db.Timestamp
 
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   scheduledRides ScheduledRide[]
   trips          Trip[]
 
-  vehicleFeatures     String[]  @default([])   // e.g. ["navigation", "air-conditioning"]
-  vehiclePhotos       String[]  @default([])   // S3 URLs for front, back, interior, etc.
-  insuranceExpiry     DateTime?
-  registrationExpiry  DateTime?
-  inspectionExpiry    DateTime?
+  vehicleFeatures    String[]  @default([]) // e.g. ["navigation", "air-conditioning"]
+  vehiclePhotos      String[]  @default([]) // S3 URLs for front, back, interior, etc.
+  insuranceExpiry    DateTime?
+  registrationExpiry DateTime?
+  inspectionExpiry   DateTime?
 
-  carRentalBookings   CarRentalBooking[]
+  carRentalBookings CarRentalBooking[]
 
   courier         Courier?
+  courierPayouts  CourierPayout[]
+  courierDisputes CourierDispute[]
+  courierAlerts   CourierAlert[]
 
   @@map("drivers")
 }
 
 model CarRental {
-  id            String   @id @default(uuid())
-  ownerId       String
-  owner         CarOwner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  id      String   @id @default(uuid())
+  ownerId String
+  owner   CarOwner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
-  vehicleModel  String
-  vehiclePlate  String   @unique
-  vehicleColor  String?
-  vehicleYear   Int?
-  vehicleType   String   
-  pricePerDay   Float
-  available     Boolean  @default(true)
-  description   String?
-  images        String[] 
+  vehicleModel String
+  vehiclePlate String   @unique
+  vehicleColor String?
+  vehicleYear  Int?
+  vehicleType  String
+  pricePerDay  Float
+  available    Boolean  @default(true)
+  description  String?
+  images       String[]
 
-  status          String   @default("pending") // pending, under_review, approved, rejected
-  verificationPercentage Int? @default(0)
-  submittedAt     DateTime @default(now())
+  status                 String   @default("pending") // pending, under_review, approved, rejected
+  verificationPercentage Int?     @default(0)
+  submittedAt            DateTime @default(now())
 
   registrationUrl String?
   insuranceUrl    String?
-  licenseUrl      String?  
+  licenseUrl      String?
   inspectionUrl   String?
 
-  rejectionReason     String?
+  rejectionReason String?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  bookings      CarRentalBooking[]
+  bookings CarRentalBooking[]
 
   @@map("car_rentals")
 }
 
 model CarRentalBooking {
-  id          String    @id @default(uuid())
-  driverId    String
-  driver      Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  id       String @id @default(uuid())
+  driverId String
+  driver   Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
 
-  carId       String
-  car         CarRental @relation(fields: [carId], references: [id], onDelete: Cascade)
+  carId String
+  car   CarRental @relation(fields: [carId], references: [id], onDelete: Cascade)
 
-  startDate   DateTime
-  endDate     DateTime
-  totalPrice  Float?
-  status      String    @default("pending") // pending, confirmed, active, completed, cancelled
+  startDate  DateTime
+  endDate    DateTime
+  totalPrice Float?
+  status     String   @default("pending") // pending, confirmed, active, completed, cancelled
 
-  returnNotes       String?   
-  adjustmentReason  String?   
+  returnNotes      String?
+  adjustmentReason String?
 
-  disputes    Dispute[]
+  disputes Dispute[]
 
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("car_rental_bookings")
 }
 
 model Dispute {
-  id              String   @id @default(uuid())
-  disputeId       String   @unique @default("RD")
+  id        String @id @default(uuid())
+  disputeId String @unique @default("RD")
 
   rentalBookingId String
   rentalBooking   CarRentalBooking @relation(fields: [rentalBookingId], references: [id], onDelete: Cascade)
 
-  type            String
-  severity        String
-  status          String   @default("Open")
-  description     String
+  type        String
+  severity    String
+  status      String @default("Open")
+  description String
 
-  renterNotes     String?
-  ownerNotes      String?
-  evidenceUrls    String[]
+  renterNotes  String?
+  ownerNotes   String?
+  evidenceUrls String[]
 
   resolutionAction String?
   resolutionNotes  String?
@@ -231,7 +234,7 @@ model CarOwner {
   totalCars     Int   @default(0)
   totalEarnings Float @default(0.0)
 
-  carRentals        CarRental[]
+  carRentals CarRental[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -240,9 +243,9 @@ model CarOwner {
 }
 
 model VehicleCategory {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
+  id             String  @id @default(uuid())
+  name           String  @unique
+  description    String?
   commissionRate Float   @default(15)
 
   dailyMinRate   Float
@@ -252,10 +255,10 @@ model VehicleCategory {
   monthlyMinRate Float?
   monthlyMaxRate Float?
 
-  status      Boolean  @default(true)
+  status Boolean @default(true)
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("vehicle_categories")
 }
@@ -281,21 +284,21 @@ model ScheduledRide {
 }
 
 model Trip {
-  id        String   @id @default(uuid())
-  riderId   String
-  driverId  String?
-  pickupLocation  Json     // { lat: number, lng: number, address?: string }
-  dropoffLocation Json    // { lat: number, lng: number, address?: string }
+  id              String    @id @default(uuid())
+  riderId         String
+  driverId        String?
+  pickupLocation  Json // { lat: number, lng: number, address?: string }
+  dropoffLocation Json // { lat: number, lng: number, address?: string }
   estimatedFare   Float?
   actualFare      Float?
-  currency        String   @default("NGN")
-  status          String   @default("REQUESTED")   // REQUESTED, SEARCHING_DRIVER, DRIVER_ASSIGNED, DRIVER_ARRIVED, IN_PROGRESS, COMPLETED, CANCELLED
-  rideType        String   @default("ECONOMY")      // ECONOMY, COMFORT, LUXURY
-  surgeMultiplier Float?   @default(1.0)
+  currency        String    @default("NGN")
+  status          String    @default("REQUESTED") // REQUESTED, SEARCHING_DRIVER, DRIVER_ASSIGNED, DRIVER_ARRIVED, IN_PROGRESS, COMPLETED, CANCELLED
+  rideType        String    @default("ECONOMY") // ECONOMY, COMFORT, LUXURY
+  surgeMultiplier Float?    @default(1.0)
   startTime       DateTime?
   endTime         DateTime?
-  revenue   Float?
-  rating    Float?
+  revenue         Float?
+  rating          Float?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -316,86 +319,86 @@ model City {
   serviceZones String[]
   isActive     Boolean  @default(true)
 
-  hubs         Hub[]
+  hubs Hub[]
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("cities")
 }
 
 model Hub {
-  id               String   @id @default(uuid())
-  name             String
-  address          String
-  cityId           String
-  city             City     @relation(fields: [cityId], references: [id])
-  latitude         Float
-  longitude        Float
-  capacity         Int
-  operatingHours   String   @default("24/7")
-  assignedDrivers  Int      @default(0)
-  isActive         Boolean  @default(true)
+  id              String  @id @default(uuid())
+  name            String
+  address         String
+  cityId          String
+  city            City    @relation(fields: [cityId], references: [id])
+  latitude        Float
+  longitude       Float
+  capacity        Int
+  operatingHours  String  @default("24/7")
+  assignedDrivers Int     @default(0)
+  isActive        Boolean @default(true)
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("hubs")
 }
 
 model Courier {
-  id              String   @id @default(uuid())
-  driverId        String   @unique
-  driver          Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  id       String @id @default(uuid())
+  driverId String @unique
+  driver   Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
 
-  vehicleType     String   // "Bike", "Car"
-  status          String   @default("Offline") // Online, Offline, On Delivery, Suspended
+  vehicleType String // "Bike", "Car"
+  status      String @default("Offline") // Online, Offline, On Delivery, Suspended
 
-  rating          Float    @default(0.0)
-  totalDeliveries Int      @default(0)
-  successRate     Float    @default(0.0)
+  rating          Float @default(0.0)
+  totalDeliveries Int   @default(0)
+  successRate     Float @default(0.0)
 
-  isActive        Boolean  @default(true)
+  isActive Boolean @default(true)
 
-  deliveries      Delivery[]
+  deliveries Delivery[]
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("couriers")
 }
 
 model Delivery {
-  id              String   @id @default(uuid())
-  trackingNumber  String   @unique
+  id             String @id @default(uuid())
+  trackingNumber String @unique
 
-  courierId       String
-  courier         Courier  @relation(fields: [courierId], references: [id], onDelete: Cascade)
+  courierId String
+  courier   Courier @relation(fields: [courierId], references: [id], onDelete: Cascade)
 
   pickupLocation  Json
   dropoffLocation Json
   fare            Float?
 
-  status          String   @default("In Transit") // In Transit, Delivered, Failed, Cancelled
+  status String @default("In Transit") // In Transit, Delivered, Failed, Cancelled
 
-  category        String   // Food & Beverages, Electronics, Documents, Groceries, Fragile Items, Retail Goods, Medical Supplies
+  category String // Food & Beverages, Electronics, Documents, Groceries, Fragile Items, Retail Goods, Medical Supplies
 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("deliveries")
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  title     String
-  message   String
-  type      String?  // e.g. "ride_request", "payment", "system"
-  read      Boolean  @default(false)
-  data      Json?    // optional payload, e.g. { rideId: "..." }
+  title   String
+  message String
+  type    String? // e.g. "ride_request", "payment", "system"
+  read    Boolean @default(false)
+  data    Json? // optional payload, e.g. { rideId: "..." }
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -422,4 +425,150 @@ model VerificationCode {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("verification_codes")
+}
+
+model CourierSurcharge {
+  id          String  @id @default(uuid())
+  size        String  @unique // SMALL, MEDIUM, LARGE, EXTRA_LARGE
+  weightRange String
+  bikeExtra   Float?
+  carExtra    Float?
+  notes       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("courier_surcharges")
+}
+
+model CourierPayout {
+  id       String @id @default(uuid())
+  driverId String
+  driver   Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  rideEarnings     Float
+  deliveryEarnings Float
+  bonus            Float  @default(0)
+  commission       Float
+  pendingAmount    Float
+  status           String @default("PENDING") // PENDING, APPROVED, ON_HOLD, PAID
+
+  approvedAt DateTime?
+  paidAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("courier_payouts")
+}
+
+model CourierPricing {
+  id             String  @id @default(uuid())
+  category       String  @unique // e.g. "BIKE STANDARD", "CAR EXPRESS", "CAR XL"
+  baseFare       Float
+  ratePerKm      Float
+  minFare        Float
+  peakMultiplier Float   @default(1.0)
+  notes          String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("courier_pricing")
+}
+
+model GeographicZone {
+  id         String  @id @default(uuid())
+  name       String
+  type       String // "URBAN", "SUBURBAN", "RURAL", "INTERCITY"
+  multiplier Float   @default(1.0)
+  ratePerKm  Float
+  isActive   Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("geographic_zones")
+}
+
+model CourierCategory {
+  id                 String   @id @default(uuid())
+  name               String   @unique
+  description        String?
+  vehicleRestriction String? // "BIKE ONLY", "CAR ONLY", "BOTH"
+  insuranceLevel     String? // "NONE", "BASIC", "STANDARD", "PREMIUM"
+  pricingMultiplier  Float    @default(1.0)
+  maxDeliveryWindow  Int? // in minutes
+  requirements       String[] @default([])
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("courier_categories")
+}
+
+model CourierDispute {
+  id          String @id @default(uuid())
+  disputeCode String @unique // DSP-001
+
+  trackingNumber String?
+  driverId       String?
+  driver         Driver? @relation(fields: [driverId], references: [id])
+
+  status   String @default("OPEN") // OPEN, INVESTIGATING, ESCALATED, RESOLVED, CLOSED
+  priority String // LOW, MEDIUM, HIGH, CRITICAL
+  type     String // PACKAGE_DAMAGED, NOT_DELIVERED, OVERCHARGING, etc.
+
+  description String
+  photos      String[] @default([])
+  gpsLog      Boolean  @default(false)
+
+  resolutionNotes String?
+  refundAmount    Float?
+  resolvedAt      DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("courier_disputes")
+}
+
+model PromoCode {
+  id            String    @id @default(uuid())
+  code          String    @unique // e.g. "FIRSTDEL20"
+  type          String // "% OFF", "FREE DELIVERY", "FIXED $", "CORPORATE"
+  value         Float
+  description   String?
+  target        String? // "NEW USERS", "ALL", "REFERRAL", "CORPORATE"
+  usageLimit    Int?
+  currentUsage  Int       @default(0)
+  startDate     DateTime?
+  endDate       DateTime?
+  status        String    @default("ACTIVE") // ACTIVE, INACTIVE
+  revenueImpact Float? // calculated
+  redemptions   Int       @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("promo_codes")
+}
+
+model CourierAlert {
+  id       String  @id @default(uuid())
+  title    String
+  message  String
+  type     String // CRITICAL, WARNING, INFO
+  status   String // NEW, ACKNOWLEDGED, ACTIONED, DISMISSED
+  driverId String?
+  driver   Driver? @relation(fields: [driverId], references: [id])
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("courier_alerts")
 }
