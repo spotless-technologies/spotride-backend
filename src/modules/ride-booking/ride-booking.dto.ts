@@ -36,3 +36,9 @@ export const rateTripSchema = z.object({
   rating: z.number().min(1).max(5),
   feedback: z.string().optional(),
 });
+
+export const nearbyDriversSchema = z.object({
+  lat: z.coerce.number().min(-90).max(90),
+  lng: z.coerce.number().min(-180).max(180),
+  radiusKm: z.coerce.number().positive().max(50).optional().default(5),
+});

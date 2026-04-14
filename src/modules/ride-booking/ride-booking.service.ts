@@ -1,6 +1,7 @@
 import prisma from '../../config/prisma';
 import env from '../../config/env';
 import axios from 'axios';
+import { Prisma } from '@prisma/client';
 
 const paystack = axios.create({
   baseURL: 'https://api.paystack.co',
@@ -107,6 +108,64 @@ export const endTrip = async (tripId: string, actualFare?: number) => {
   }
 
   return { message: "Trip completed", commissionDeducted: commission, finalFare };
+};
+
+export const getNearbyDrivers = async (lat: number, lng: number, radiusKm: number = 5) => {
+  const drivers = await prisma.driver.findMany({
+    where: {
+      isOnline: true,
+      status: 'approved',
+      currentLocation: { not: Prisma.JsonNull }, 
+    },
+    include: {
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+          profilePicture: true,
+        },
+      },
+    },
+  });
+
+  // Calculate distance and filter
+  const nearby = drivers
+    .map((driver) => {
+      if (!driver.currentLocation || typeof driver.currentLocation !== 'object') return null;
+
+      const loc = driver.currentLocation as any;
+      const driverLat = loc.lat;
+      const driverLng = loc.lng;
+
+      if (typeof driverLat !== 'number' || typeof driverLng !== 'number') return null;
+
+      const distanceKm = haversineKm(lat, lng, driverLat, driverLng);
+
+      if (distanceKm > radiusKm) return null;
+
+      const etaMinutes = Math.round((distanceKm / 40) * 60); // 40 km/h average in city
+
+      return {
+        driverId: driver.id,
+        fullName: `${driver.user.firstName} ${driver.user.lastName}`.trim() || 'Unknown Driver',
+        photo: driver.user.profilePicture,
+        rating: Number(driver.rating.toFixed(1)),
+        vehicleType: driver.vehicleType,
+        vehicleModel: driver.vehicleModel,
+        vehicleColor: driver.vehicleColor,
+        distanceKm: Number(distanceKm.toFixed(2)),
+        etaMinutes,
+        lastUpdated: driver.lastLocationUpdate,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null)
+    .sort((a, b) => a.distanceKm - b.distanceKm); // closest first
+
+  return {
+    count: nearby.length,
+    radiusKm,
+    drivers: nearby,
+  };
 };
 
 export const initializePaystackPayment = async (tripId: string, amount: number, email: string) => {

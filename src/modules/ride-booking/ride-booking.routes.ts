@@ -10,12 +10,14 @@ import {
   endTrip,
   initializePayment,
   rateTrip,
+  getNearbyDrivers,
 } from './ride-booking.controller';
 import {
   rideEstimateSchema,
   requestRideSchema,
   driverAcceptSchema,
   rateTripSchema,
+  nearbyDriversSchema,
 } from './ride-booking.dto';
 
 const router = Router();
@@ -183,5 +185,59 @@ router.post('/rides/payment/initialize', riderAuth, initializePayment);
  *         description: Rating submitted successfully
  */
 router.post('/rides/rate', riderAuth, validate(rateTripSchema), rateTrip);
+
+/**
+ * @swagger
+ * /api/rides/nearby-drivers:
+ *   get:
+ *     summary: Get available drivers near the rider (real-time)
+ *     tags: [Ride Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     description: |
+ *       Returns online, approved drivers within the specified radius (default 5km).
+ *       Uses the driver's latest `currentLocation` updated via WebSocket `location-update`.
+ *       Results are sorted by distance (closest first).
+ *     parameters:
+ *       - in: query
+ *         name: lat
+ *         required: true
+ *         schema: { type: number }
+ *         example: 6.5244
+ *       - in: query
+ *         name: lng
+ *         required: true
+ *         schema: { type: number }
+ *         example: 3.3792
+ *       - in: query
+ *         name: radiusKm
+ *         schema: { type: number, default: 5, maximum: 50 }
+ *         example: 5
+ *     responses:
+ *       200:
+ *         description: List of nearby available drivers
+ *         content:
+ *           application/json:
+ *             example:
+ *               count: 3
+ *               radiusKm: 5
+ *               drivers:
+ *                 - driverId: "driver-uuid"
+ *                   fullName: "Emeka Okafor"
+ *                   photo: "https://..."
+ *                   rating: 4.8
+ *                   vehicleType: "SEDAN"
+ *                   vehicleModel: "Toyota Camry"
+ *                   vehicleColor: "Black"
+ *                   distanceKm: 1.23
+ *                   etaMinutes: 4
+ *                   lastUpdated: "2026-04-13T15:42:00Z"
+ */
+router.get(
+  '/rides/nearby-drivers', 
+  riderAuth, 
+  validate(nearbyDriversSchema, 'query'), 
+  getNearbyDrivers
+);
 
 export default router;
