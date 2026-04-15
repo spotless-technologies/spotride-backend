@@ -2,6 +2,7 @@ import prisma from '../../config/prisma';
 import env from '../../config/env';
 import axios from 'axios';
 import { Prisma } from '@prisma/client';
+import { PRICING_CONFIG } from '../../utils/pricing';
 
 const paystack = axios.create({
   baseURL: 'https://api.paystack.co',
@@ -16,33 +17,31 @@ const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-// Base prices per ride type (as requested)
-const BASE_PRICES = {
-  REGULAR: 800,
-  STANDARD: 1200,
-  PREMIUM: 2000,
-} as const;
-
 export const calculateFareEstimate = async (data: any) => {
+  const country = data.country || env.RIDE_DEFAULT_COUNTRY;
+  const config = PRICING_CONFIG[country as keyof typeof PRICING_CONFIG] || PRICING_CONFIG.NG;
+
   const distanceKm = haversineKm(data.pickupLat, data.pickupLng, data.destinationLat, data.destinationLng);
   const durationMin = Math.round((distanceKm / env.RIDE_AVG_SPEED_KMH) * 60);
 
-  const baseFare = BASE_PRICES[data.rideType as keyof typeof BASE_PRICES] || BASE_PRICES.REGULAR;
+  const baseFare = config[data.rideType as keyof typeof config] as number || config.REGULAR;
 
   const subtotal = baseFare 
-    + (distanceKm * env.RIDE_RATE_PER_KM) 
-    + (durationMin * env.RIDE_RATE_PER_MIN) 
-    + env.RIDE_BOOKING_FEE;
+    + (distanceKm * config.ratePerKm) 
+    + (durationMin * config.ratePerMin) 
+    + config.bookingFee;
 
-  const surgeMultiplier = 1.0; // TODO: Implement real surge with Redis later
+  // TODO: Implement real surge with Redis later
+  const surgeMultiplier = 1.0; 
 
   return {
     distanceKm: Number(distanceKm.toFixed(2)),
     durationMin,
-    currency: env.RIDE_DEFAULT_CURRENCY,
+    currency: config.currency,
     estimatedFare: Math.round(subtotal * surgeMultiplier),
     surgeMultiplier,
     rideType: data.rideType,
+    country,
   };
 };
 
@@ -54,10 +53,11 @@ export const requestRide = async (riderId: string, data: any) => {
       riderId,
       pickupLocation: { lat: data.pickupLat, lng: data.pickupLng },
       dropoffLocation: { lat: data.destinationLat, lng: data.destinationLng },
-      estimatedFare: estimate.estimatedFare,
+      estimatedFare: data.estimatedFare || estimate.estimatedFare,
       currency: estimate.currency,
+      country: estimate.country,
       status: "REQUESTED",
-      rideType: data.rideType,
+      rideType: data.rideType || "REGULAR",
       surgeMultiplier: estimate.surgeMultiplier,
       promoCode: data.promoCode,
     },

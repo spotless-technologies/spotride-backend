@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import * as rideService from './ride-booking.service';
 import * as rideDto from './ride-booking.dto';
 import prisma from '../../config/prisma';
-import z from 'zod';
 
 export const getFareEstimate = async (req: Request, res: Response) => {
   const data = rideDto.rideEstimateSchema.parse(req.body);
@@ -15,8 +14,13 @@ export const requestRide = async (req: Request, res: Response) => {
   if (!riderId) return res.status(401).json({ message: 'Unauthorized' });
 
   const data = rideDto.requestRideSchema.parse(req.body);
+
   const trip = await rideService.requestRide(riderId, data);
-  res.status(201).json({ message: "Ride requested successfully", trip });
+
+  res.status(201).json({ 
+    message: "Ride requested successfully", 
+    trip 
+  });
 };
 
 export const driverAcceptRide = async (req: Request, res: Response) => {

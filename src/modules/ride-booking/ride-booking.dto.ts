@@ -6,10 +6,12 @@ export const rideEstimateSchema = z.object({
   destinationLat: z.number(),
   destinationLng: z.number(),
   rideType: z.enum(['REGULAR', 'STANDARD', 'PREMIUM']).optional().default('REGULAR'),
+  country: z.string().min(2).max(3).optional().default('NG'),
 });
 
 export const requestRideSchema = rideEstimateSchema.extend({
   promoCode: z.string().optional(),
+  estimatedFare: z.number().positive(),
 });
 
 export const driverAcceptSchema = z.object({

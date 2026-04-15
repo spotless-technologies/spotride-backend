@@ -72,25 +72,48 @@ router.post('/rides/estimate', validate(rideEstimateSchema), getFareEstimate);
  * @swagger
  * /api/rides/request:
  *   post:
- *     summary: Rider requests a new ride
+ *     summary: Rider requests a new ride (with user-adjusted estimatedFare)
  *     tags: [Ride Booking]
  *     security:
  *       - bearerAuth: []
- *     description: Creates a trip with status REQUESTED. Then emit 'ride:request-matching' via WebSocket.
+ *     description: |
+ *       First call `/rides/estimate` to get the default calculated price based on rideType and country.
+ *       The user can then increase or reduce the price on the frontend.
+ *       Send the **final `estimatedFare`** chosen by the user in this request.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [pickupLat, pickupLng, destinationLat, destinationLng]
+ *             required: [pickupLat, pickupLng, destinationLat, destinationLng, estimatedFare]
  *             properties:
- *               pickupLat: { type: number }
- *               pickupLng: { type: number }
- *               destinationLat: { type: number }
- *               destinationLng: { type: number }
- *               rideType: { type: string, enum: ["REGULAR","STANDARD","PREMIUM"] }
- *               promoCode: { type: string, example: "FIRSTRIDE20" }
+ *               pickupLat:
+ *                 type: number
+ *                 example: 6.5244
+ *               pickupLng:
+ *                 type: number
+ *                 example: 3.3792
+ *               destinationLat:
+ *                 type: number
+ *                 example: 6.6018
+ *               destinationLng:
+ *                 type: number
+ *                 example: 3.3515
+ *               rideType:
+ *                 type: string
+ *                 enum: ["REGULAR", "STANDARD", "PREMIUM"]
+ *                 example: "PREMIUM"
+ *               estimatedFare:
+ *                 type: number
+ *                 example: 2500
+ *                 description: Final price chosen by the user (can be higher or lower than default)
+ *               promoCode:
+ *                 type: string
+ *                 example: "FIRSTRIDE20"
+ *               country:
+ *                 type: string
+ *                 example: "NG"
  *     responses:
  *       201:
  *         description: Ride requested successfully
@@ -99,10 +122,16 @@ router.post('/rides/estimate', validate(rideEstimateSchema), getFareEstimate);
  *             example:
  *               message: "Ride requested successfully"
  *               trip:
- *                 id: "trip-uuid"
+ *                 id: "trip-uuid-here"
  *                 status: "REQUESTED"
- *                 estimatedFare: 6200
- *                 rideType: "REGULAR"
+ *                 estimatedFare: 2500
+ *                 currency: "NGN"
+ *                 country: "NG"
+ *                 rideType: "PREMIUM"
+ *       400:
+ *         description: Validation error (missing fields or invalid values)
+ *       401:
+ *         description: Unauthorized - Rider token required
  */
 router.post('/rides/request', riderAuth, validate(requestRideSchema), requestRide);
 
