@@ -1,4 +1,4 @@
-import prisma from '../config/prisma';
+import prisma from '../../config/prisma';
 
 export const getHubCityStats = async () => {
   const [totalCities, activeZones, totalHubs, activeHubs] = await Promise.all([
@@ -18,15 +18,13 @@ export const getHubCityStats = async () => {
 
 export const getCities = async () => {
   return prisma.city.findMany({
-    include: {
-      hubs: true,
-    },
+    include: { hubs: true },
     orderBy: { name: 'asc' },
   });
 };
 
 export const createCity = async (data: any) => {
-  const serviceZonesArray = data.serviceZones
+  const serviceZones = data.serviceZones 
     ? data.serviceZones.split(',').map((z: string) => z.trim()).filter(Boolean)
     : [];
 
@@ -37,14 +35,14 @@ export const createCity = async (data: any) => {
       country: data.country,
       latitude: data.latitude,
       longitude: data.longitude,
-      serviceZones: serviceZonesArray,
-      isActive: true,
+      serviceZones,
+      pricingLevel: data.pricingLevel,
     },
   });
 };
 
 export const updateCity = async (id: string, data: any) => {
-  const serviceZonesArray = data.serviceZones
+  const serviceZones = data.serviceZones 
     ? data.serviceZones.split(',').map((z: string) => z.trim()).filter(Boolean)
     : undefined;
 
@@ -55,30 +53,20 @@ export const updateCity = async (id: string, data: any) => {
       state: data.state,
       latitude: data.latitude,
       longitude: data.longitude,
-      serviceZones: serviceZonesArray,
-      isActive: data.isActive,
+      serviceZones,
+      pricingLevel: data.pricingLevel,
     },
   });
 };
 
 export const getHubs = async () => {
   return prisma.hub.findMany({
-    include: {
-      city: true,
-    },
+    include: { city: true },
     orderBy: { name: 'asc' },
   });
 };
 
 export const createHub = async (data: any) => {
-  const cityExists = await prisma.city.findUnique({
-    where: { id: data.cityId }
-  });
-
-  if (!cityExists) {
-    throw new Error('City with the provided cityId does not exist');
-  }
-
   return prisma.hub.create({
     data: {
       name: data.name,
@@ -86,33 +74,34 @@ export const createHub = async (data: any) => {
       cityId: data.cityId,
       latitude: data.latitude,
       longitude: data.longitude,
-      capacity: data.capacity,
       operatingHours: data.operatingHours,
-      assignedDrivers: data.assignedDrivers,
+      capacity: data.capacity,
+      zonesCovered: data.zonesCovered || [],
+      pricingTier: data.pricingTier,
+      baseAdjustment: data.baseAdjustment,
+      distanceMultiplier: data.distanceMultiplier,
       isActive: true,
     },
   });
 };
 
-export const updateHub = async (id: string, data: any) => {
+export const configureHub = async (id: string, data: any) => {
   return prisma.hub.update({
     where: { id },
     data: {
-      name: data.name,
-      address: data.address,
-      latitude: data.latitude,
-      longitude: data.longitude,
-      capacity: data.capacity,
-      operatingHours: data.operatingHours,
-      assignedDrivers: data.assignedDrivers,
-      isActive: data.isActive,
+      zonesCovered: data.zonesCovered,
+      pricingTier: data.pricingTier,
+      baseAdjustment: data.baseAdjustment,
+      distanceMultiplier: data.distanceMultiplier,
     },
   });
 };
 
-export const updateHubStatus = async (id: string, isActive: boolean) => {
-  return prisma.hub.update({
-    where: { id },
-    data: { isActive },
-  });
+export const getHubStats = async () => {
+  const [totalHubs, activeHubs] = await Promise.all([
+    prisma.hub.count(),
+    prisma.hub.count({ where: { isActive: true } }),
+  ]);
+
+  return { totalHubs, activeHubs };
 };

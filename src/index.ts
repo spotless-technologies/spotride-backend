@@ -17,8 +17,7 @@ import carRentalPricingAndCategoriesRoutes from './car-rental-pricing-and-catego
 import disputesRoutes from './disputes-and-complaints/disputes-and-complaints.routes';
 import liveRentalMonitoringRoutes from './live-rental-monitoring/live-rental-monitoring.routes';
 import supportAnalyticsRoutes from './support-and-analytics/support-and-analytics.routes';
-import hubCityManagementRoutes from './hub-and-city-management/hub-and-city-management.routes';
-
+import hubsAndCitiesManagementRoutes from './modules/hubs-and-cities-management/hubs-and-cities-management.routes';
 import courierManagementRoutes from './modules/courier-management/courier-management.routes';
 import courierManagementOperationsRoutes from './modules/courier-management-operations/courier-management-operations.routes';
 import courierGrowthManagementRoutes from './modules/courier-growth-management/courier-growth-management.routes';
@@ -145,7 +144,7 @@ app.use('/api/admin', carRentalPricingAndCategoriesRoutes);
 app.use('/api/admin', disputesRoutes);
 app.use('/api/admin', liveRentalMonitoringRoutes);
 app.use('/api/admin', supportAnalyticsRoutes);
-app.use('/api/admin', hubCityManagementRoutes);
+app.use('/api/admin', hubsAndCitiesManagementRoutes);
 app.use('/api/admin', courierManagementRoutes);
 app.use('/api/admin', courierManagementOperationsRoutes);
 app.use('/api/admin', courierGrowthManagementRoutes);

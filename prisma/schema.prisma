@@ -359,6 +359,7 @@ model City {
   longitude    Float
   serviceZones String[]
   isActive     Boolean  @default(true)
+  pricingLevel String @default("STANDARD") // BUDGET, STANDARD, PREMIUM
 
   hubs Hub[]
 
@@ -380,6 +381,11 @@ model Hub {
   operatingHours  String  @default("24/7")
   assignedDrivers Int     @default(0)
   isActive        Boolean @default(true)
+
+  zonesCovered     String[]  @default([])   
+  pricingTier      String    @default("STANDARD") // BUDGET, STANDARD, PREMIUM
+  baseAdjustment   Float     @default(0)   
+  distanceMultiplier Float   @default(1.0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
