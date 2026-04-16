@@ -115,10 +115,12 @@ model Driver {
 
   carRentalBookings CarRentalBooking[]
 
-  courier         Courier?
-  courierPayouts  CourierPayout[]
-  courierDisputes CourierDispute[]
-  courierAlerts   CourierAlert[]
+  courier                  Courier?
+  courierPayouts           CourierPayout[]
+  courierDisputes          CourierDispute[]
+  courierAlerts            CourierAlert[]
+  driverWalletTransactions DriverWalletTransaction[]
+  driverPayouts            DriverPayout[]
 
   @@map("drivers")
 }
@@ -654,4 +656,76 @@ model Message {
   createdAt DateTime @default(now())
 
   @@map("messages")
+}
+
+model DriverWalletTransaction {
+  id       String @id @default(uuid())
+  driverId String
+  driver   Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  amount       Float
+  type         String // CREDIT, DEBIT
+  category     String // EARNINGS, WITHDRAWAL, ADJUSTMENT, BONUS, PENALTY
+  description  String?
+  reference    String? @unique
+  balanceAfter Float
+  metadata     Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([driverId])
+  @@index([createdAt])
+  @@map("driver_wallet_transactions")
+}
+
+model DriverPayout {
+  id       String @id @default(uuid())
+  driverId String
+  driver   Driver @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  amount         Float
+  status         String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED, CANCELLED
+  paymentMethod  String?
+  accountDetails Json?
+  reference      String?   @unique
+  processedAt    DateTime?
+  completedAt    DateTime?
+  failureReason  String?
+  metadata       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([driverId])
+  @@index([status])
+  @@map("driver_payouts")
+}
+
+model PayoutConfiguration {
+  id                  String   @id @default(uuid())
+  frequency           String   @default("DAILY") // DAILY, WEEKLY, BI_WEEKLY, MONTHLY
+  processingTime      String   @default("23:59")
+  minimumThreshold    Float    @default(500)
+  autoPayoutEnabled   Boolean  @default(true)
+  eligibleDriverTypes String[] @default(["approved"])
+  updatedBy           String?
+  updatedAt           DateTime @updatedAt
+  createdAt           DateTime @default(now())
+
+  @@map("payout_configurations")
+}
+
+model PayoutRun {
+  id             String    @id @default(uuid())
+  runDate        DateTime  @default(now())
+  driversPaid    Int       @default(0)
+  totalDisbursed Float     @default(0)
+  status         String    @default("PENDING") // PENDING, PROCESSING, COMPLETED, PARTIAL, FAILED
+  errorMessage   String?
+  completedAt    DateTime?
+  metadata       Json?
+
+  @@index([runDate])
+  @@index([status])
+  @@map("payout_runs")
 }
