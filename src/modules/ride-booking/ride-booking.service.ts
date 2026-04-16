@@ -168,6 +168,118 @@ export const getNearbyDrivers = async (lat: number, lng: number, radiusKm: numbe
   };
 };
 
+export const createConversation = async (tripId: string, riderId: string, driverId: string) => {
+  return prisma.conversation.create({
+    data: {
+      tripId,
+      riderId,
+      driverId,
+    },
+    include: { messages: true },
+  });
+};
+
+export const sendMessage = async (conversationId: string, senderId: string, senderType: 'RIDER' | 'DRIVER', data: any) => {
+  return prisma.message.create({
+    data: {
+      conversationId,
+      senderId,
+      senderType,
+      content: data.content,
+      voiceNoteUrl: data.voiceNoteUrl,
+      type: data.type,
+    },
+  });
+};
+
+export const getConversationMessages = async (conversationId: string) => {
+  return prisma.message.findMany({
+    where: { conversationId },
+    orderBy: { createdAt: 'asc' },
+  });
+};
+
+export const markMessageRead = async (messageId: string) => {
+  return prisma.message.update({
+    where: { id: messageId },
+    data: { isRead: true },
+  });
+};
+
+// Driver sees nearby ride requests (with counter-bid capability)
+export const getDriverRideRequests = async (driverLat: number, driverLng: number, radiusKm: number = 10) => {
+  const requests = await prisma.trip.findMany({
+    where: {
+      status: "REQUESTED",
+      rider: {
+        rider: { isNot: null }, // ensure it's a rider trip
+      },
+    },
+    include: {
+      rider: {
+        select: {
+          firstName: true,
+          lastName: true,
+          profilePicture: true,
+        },
+      },
+    },
+  });
+
+  // Filter by distance (using pickup location)
+  const nearbyRequests = requests
+    .map((trip) => {
+      const pickup = trip.pickupLocation as any;
+      if (!pickup?.lat || !pickup?.lng) return null;
+
+      const distanceKm = haversineKm(driverLat, driverLng, pickup.lat, pickup.lng);
+      if (distanceKm > radiusKm) return null;
+
+      return {
+        tripId: trip.id,
+        riderName: `${trip.rider.firstName} ${trip.rider.lastName}`.trim(),
+        riderPhoto: trip.rider.profilePicture,
+        pickupLocation: trip.pickupLocation,
+        dropoffLocation: trip.dropoffLocation,
+        estimatedFare: trip.estimatedFare,
+        rideType: trip.rideType,
+        distanceKm: Number(distanceKm.toFixed(2)),
+        createdAt: trip.createdAt,
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    count: nearbyRequests.length,
+    requests: nearbyRequests,
+  };
+};
+
+export const counterBidOnRide = async (driverId: string, tripId: string, offeredPrice: number) => {
+  // Ensure the trip is still in REQUESTED state and not yet assigned
+  const trip = await prisma.trip.findUnique({
+    where: { id: tripId },
+  });
+
+  if (!trip) throw new Error("Trip not found");
+  if (trip.status !== "REQUESTED") throw new Error("Ride request is no longer available for bidding");
+  if (trip.driverId) throw new Error("Ride already assigned to another driver");
+
+  // Update the trip with driver's counter offer
+  return prisma.trip.update({
+    where: { id: tripId },
+    data: {
+      actualFare: offeredPrice,        
+      status: "DRIVER_COUNTER_BID",  
+    },
+    include: {
+      rider: {
+        select: { firstName: true, lastName: true },
+      },
+    },
+  });
+};
+
 export const initializePaystackPayment = async (tripId: string, amount: number, email: string) => {
   const res = await paystack.post('/transaction/initialize', {
     amount: Math.round(amount * 100),

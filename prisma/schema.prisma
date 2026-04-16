@@ -295,7 +295,7 @@ model Trip {
   currency        String    @default("NGN")
   country         String?
   status          String    @default("REQUESTED") // REQUESTED, SEARCHING_DRIVER, DRIVER_ASSIGNED, DRIVER_ARRIVED, IN_PROGRESS, COMPLETED, CANCELLED
-  rideType        String    @default("REGULAR")   // REGULAR, STANDARD, PREMIUM
+  rideType        String    @default("REGULAR") // REGULAR, STANDARD, PREMIUM
   surgeMultiplier Float?    @default(1.0)
   startTime       DateTime?
   endTime         DateTime?
@@ -314,8 +314,9 @@ model Trip {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  rider  User    @relation(fields: [riderId], references: [id])
-  driver Driver? @relation(fields: [driverId], references: [id])
+  rider        User          @relation(fields: [riderId], references: [id])
+  driver       Driver?       @relation(fields: [driverId], references: [id])
+  conversation Conversation?
 
   @@map("trips")
 }
@@ -359,7 +360,7 @@ model City {
   longitude    Float
   serviceZones String[]
   isActive     Boolean  @default(true)
-  pricingLevel String @default("STANDARD") // BUDGET, STANDARD, PREMIUM
+  pricingLevel String   @default("STANDARD") // BUDGET, STANDARD, PREMIUM
 
   hubs Hub[]
 
@@ -382,10 +383,10 @@ model Hub {
   assignedDrivers Int     @default(0)
   isActive        Boolean @default(true)
 
-  zonesCovered     String[]  @default([])   
-  pricingTier      String    @default("STANDARD") // BUDGET, STANDARD, PREMIUM
-  baseAdjustment   Float     @default(0)   
-  distanceMultiplier Float   @default(1.0)
+  zonesCovered       String[] @default([])
+  pricingTier        String   @default("STANDARD") // BUDGET, STANDARD, PREMIUM
+  baseAdjustment     Float    @default(0)
+  distanceMultiplier Float    @default(1.0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -618,4 +619,39 @@ model CourierAlert {
   updatedAt DateTime @updatedAt
 
   @@map("courier_alerts")
+}
+
+model Conversation {
+  id     String @id @default(uuid())
+  tripId String @unique
+  trip   Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  riderId  String
+  driverId String
+
+  messages Message[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  senderId   String
+  senderType String // "RIDER" or "DRIVER"
+
+  content      String?
+  voiceNoteUrl String? // S3 URL for voice note
+  type         String  @default("TEXT") // TEXT, VOICE_NOTE, IMAGE, LOCATION
+
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@map("messages")
 }

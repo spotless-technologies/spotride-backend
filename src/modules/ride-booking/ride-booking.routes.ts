@@ -11,13 +11,22 @@ import {
   initializePayment,
   rateTrip,
   getNearbyDrivers,
+  sendMessage,
+  getConversationMessages,
+  getDriverRideRequests,
+  createConversation,
+  counterBidOnRide,
 } from './ride-booking.controller';
+
 import {
   rideEstimateSchema,
   requestRideSchema,
   driverAcceptSchema,
   rateTripSchema,
   nearbyDriversSchema,
+  sendMessageSchema,
+  driverRideRequestsSchema,
+  counterBidSchema,
 } from './ride-booking.dto';
 
 const router = Router();
@@ -267,6 +276,162 @@ router.get(
   riderAuth, 
   validate(nearbyDriversSchema, 'query'), 
   getNearbyDrivers
+);
+
+// ==================== CONVERSATION & MESSAGING ====================
+/**
+ * @swagger
+ * /api/rides/conversations:
+ *   post:
+ *     summary: Create conversation between rider and driver for a trip
+ *     tags: [Ride Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [tripId]
+ *             properties:
+ *               tripId: { type: string, format: uuid }
+ *     responses:
+ *       201:
+ *         description: Conversation created
+ */
+router.post('/rides/conversations', riderAuth, createConversation);
+
+/**
+ * @swagger
+ * /api/rides/conversations/{conversationId}/messages:
+ *   post:
+ *     summary: Send message or voice note in conversation
+ *     tags: [Ride Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               conversationId: { type: string, format: uuid }
+ *               content: { type: string }
+ *               voiceNoteUrl: { type: string }
+ *               type: { type: string, enum: ["TEXT", "VOICE_NOTE"] }
+ *     responses:
+ *       201:
+ *         description: Message sent
+ */
+router.post('/rides/conversations/:conversationId/messages', riderAuth, validate(sendMessageSchema), sendMessage);
+
+/**
+ * @swagger
+ * /api/rides/conversations/{conversationId}/messages:
+ *   get:
+ *     summary: Get all messages in a conversation
+ *     tags: [Ride Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of messages
+ */
+router.get('/rides/conversations/:conversationId/messages', riderAuth, getConversationMessages);
+
+// ==================== DRIVER RIDE REQUESTS ====================
+/**
+ * @swagger
+ * /api/drivers/ride-requests:
+ *   get:
+ *     summary: Driver sees nearby ride requests (with counter-bid option)
+ *     tags: [Ride Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     description: |
+ *       Drivers see ride requests within their vicinity.
+ *       They can view details and counter-bid the estimatedFare before accepting.
+ *     parameters:
+ *       - in: query
+ *         name: lat
+ *         required: true
+ *         schema: { type: number }
+ *       - in: query
+ *         name: lng
+ *         required: true
+ *         schema: { type: number }
+ *       - in: query
+ *         name: radiusKm
+ *         schema: { type: number, default: 10 }
+ *     responses:
+ *       200:
+ *         description: List of nearby ride requests
+ *         content:
+ *           application/json:
+ *             example:
+ *               count: 2
+ *               requests:
+ *                 - tripId: "trip-uuid"
+ *                   riderName: "John Doe"
+ *                   estimatedFare: 6200
+ *                   distanceKm: 2.34
+ *                   rideType: "PREMIUM"
+ */
+router.get('/drivers/ride-requests', driverAuth, validate(driverRideRequestsSchema, 'query'), getDriverRideRequests);
+
+/**
+ * @swagger
+ * /api/drivers/ride-requests/{tripId}/counter-bid:
+ *   post:
+ *     summary: Driver submits a counter-bid on a ride request
+ *     tags: [Ride Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     description: |
+ *       After viewing nearby ride requests via `/drivers/ride-requests`, 
+ *       the driver can submit a counter-offer (higher or lower than the rider's estimatedFare).
+ *       This changes the trip status to "DRIVER_COUNTER_BID" and notifies the rider via WebSocket.
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [offeredPrice]
+ *             properties:
+ *               offeredPrice:
+ *                 type: number
+ *                 example: 2800
+ *                 description: Driver's proposed fare (can be higher or lower than original estimate)
+ *     responses:
+ *       200:
+ *         description: Counter-bid submitted successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Counter-bid submitted successfully. Rider will be notified."
+ *               trip:
+ *                 id: "trip-uuid"
+ *                 status: "DRIVER_COUNTER_BID"
+ *                 actualFare: 2800
+ *                 rideType: "PREMIUM"
+ *       400:
+ *         description: Invalid bid or ride no longer available
+ *       403:
+ *         description: Driver access required
+ */
+router.post(
+  '/drivers/ride-requests/:tripId/counter-bid', 
+  driverAuth, 
+  validate(counterBidSchema), 
+  counterBidOnRide
 );
 
 export default router;

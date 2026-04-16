@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import * as rideService from './ride-booking.service';
 import * as rideDto from './ride-booking.dto';
 import prisma from '../../config/prisma';
+import z from 'zod';
 
 export const getFareEstimate = async (req: Request, res: Response) => {
   const data = rideDto.rideEstimateSchema.parse(req.body);
@@ -84,4 +85,63 @@ export const getNearbyDrivers = async (req: Request, res: Response) => {
       message: error.message || "Failed to fetch nearby drivers" 
     });
   }
+};
+
+export const createConversation = async (req: Request, res: Response) => {
+  const riderId = (req as any).user?.userId;
+  const { tripId } = z.object({ tripId: z.string().uuid() }).parse(req.body);
+
+  // Get driverId from trip
+  const trip = await prisma.trip.findUnique({ where: { id: tripId } });
+  if (!trip || !trip.driverId) return res.status(400).json({ message: "Trip not assigned to driver yet" });
+
+  const conversation = await rideService.createConversation(tripId, riderId, trip.driverId);
+  res.status(201).json({ message: "Conversation created", conversation });
+};
+
+export const sendMessage = async (req: Request, res: Response) => {
+  const senderId = (req as any).user?.userId;
+  const senderType = (req as any).user?.role === 'RIDER' ? 'RIDER' : 'DRIVER';
+
+  const data = rideDto.sendMessageSchema.parse(req.body);
+  const message = await rideService.sendMessage(data.conversationId, senderId, senderType, data);
+
+  res.status(201).json({ message: "Message sent", data: message });
+};
+
+export const getConversationMessages = async (req: Request, res: Response) => {
+  const { conversationId } = z.object({ conversationId: z.string().uuid() }).parse(req.params);
+  const messages = await rideService.getConversationMessages(conversationId);
+  res.json(messages);
+};
+
+export const markMessageRead = async (req: Request, res: Response) => {
+  const { messageId } = rideDto.markMessageReadSchema.parse(req.body);
+  await rideService.markMessageRead(messageId);
+  res.json({ message: "Message marked as read" });
+};
+
+export const getDriverRideRequests = async (req: Request, res: Response) => {
+  const driverId = (req as any).driver?.driverId;
+  if (!driverId) return res.status(403).json({ message: 'Driver access required' });
+
+  const { lat, lng, radiusKm } = rideDto.driverRideRequestsSchema.parse(req.query);
+
+  const result = await rideService.getDriverRideRequests(lat, lng, radiusKm);
+  res.json(result);
+};
+
+export const counterBidOnRide = async (req: Request, res: Response) => {
+  const driverId = (req as any).driver?.driverId;
+  if (!driverId) return res.status(403).json({ message: 'Driver access required' });
+
+  const { tripId } = z.object({ tripId: z.string().uuid() }).parse(req.params);
+  const { offeredPrice } = rideDto.counterBidSchema.parse(req.body);
+
+  const updatedTrip = await rideService.counterBidOnRide(driverId, tripId, offeredPrice);
+
+  res.json({ 
+    message: "Counter-bid submitted successfully. Rider will be notified.", 
+    trip: updatedTrip 
+  });
 };

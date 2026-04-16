@@ -44,3 +44,28 @@ export const nearbyDriversSchema = z.object({
   lng: z.coerce.number().min(-180).max(180),
   radiusKm: z.coerce.number().positive().max(50).optional().default(5),
 });
+
+export const createConversationSchema = z.object({
+  tripId: z.string().uuid(),
+});
+
+export const sendMessageSchema = z.object({
+  conversationId: z.string().uuid(),
+  content: z.string().optional(),
+  voiceNoteUrl: z.string().url().optional(),
+  type: z.enum(['TEXT', 'VOICE_NOTE', 'IMAGE', 'LOCATION']).default('TEXT'),
+});
+
+export const markMessageReadSchema = z.object({
+  messageId: z.string().uuid(),
+});
+
+export const driverRideRequestsSchema = z.object({
+  lat: z.coerce.number(),
+  lng: z.coerce.number(),
+  radiusKm: z.coerce.number().positive().max(50).optional().default(10),
+});
+
+export const counterBidSchema = z.object({
+  offeredPrice: z.number().positive()
+});
