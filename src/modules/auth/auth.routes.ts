@@ -1,24 +1,7 @@
 import { Router } from 'express';
-import { validate } from '../middleware/validate';
-import {
-  registerEmail,
-  registerPhone,
-  verifyOtp,
-  googleAuth,
-  facebookAuth,
-  login,
-  refresh,
-  forgotPassword,
-  resetPassword,
-} from '../controllers/auth.controller';
-import {
-  emailSignupSchema,
-  phoneSignupSchema,
-  verifyOtpSchema,
-  loginSchema,
-  forgotPasswordSchema,
-  resetPasswordSchema,
-} from '../schemas/auth.schema';
+import { validate } from '../../middleware/validate';
+import * as controller from './auth.controller';
+import * as dto from './auth.dto';
 
 const router = Router();
 
@@ -33,10 +16,10 @@ const router = Router();
  * @swagger
  * /api/auth/register/email:
  *   post:
- *     summary: Register with email + firstName + lastName + role + password
+ *     summary: Register with email + phone + firstName + lastName + role + password
  *     tags: [Auth]
  *     description: |
- *       Register a new user using email.
+ *       Register a new user using email. **Phone number is now mandatory**.
  *     requestBody:
  *       required: true
  *       content:
@@ -45,6 +28,7 @@ const router = Router();
  *             type: object
  *             required:
  *               - email
+ *               - phone
  *               - firstName
  *               - lastName
  *               - role
@@ -55,6 +39,10 @@ const router = Router();
  *                 type: string
  *                 format: email
  *                 example: user@example.com
+ *               phone:
+ *                 type: string
+ *                 example: "+2348012345678"
+ *                 description: Phone number is required when registering with email
  *               firstName:
  *                 type: string
  *                 example: John
@@ -86,14 +74,16 @@ const router = Router();
  *                 userId:
  *                   type: string
  *                   format: uuid
+ *                 note:
+ *                   type: string
  *       400:
- *         description: Validation error (e.g. passwords don't match)
+ *         description: Validation error (e.g. passwords don't match, invalid phone)
  *       403:
  *         description: Attempt to register as ADMIN
  *       409:
- *         description: Email already registered
+ *         description: Email or phone already registered
  */
-router.post('/register/email', validate(emailSignupSchema), registerEmail);
+router.post('/register/email', validate(dto.emailSignupSchema), controller.registerEmail);
 
 /**
  * @swagger
@@ -148,7 +138,7 @@ router.post('/register/email', validate(emailSignupSchema), registerEmail);
  *       409:
  *         description: Phone already registered
  */
-router.post('/register/phone', validate(phoneSignupSchema), registerPhone);
+router.post('/register/phone', validate(dto.phoneSignupSchema), controller.registerPhone);
 
 /**
  * @swagger
@@ -180,7 +170,7 @@ router.post('/register/phone', validate(phoneSignupSchema), registerPhone);
  *       400:
  *         description: Invalid or expired OTP
  */
-router.post('/verify-otp', validate(verifyOtpSchema), verifyOtp);
+router.post('/verify-otp', validate(dto.verifyOtpSchema), controller.verifyOtp);
 
 /**
  * @swagger
@@ -227,7 +217,7 @@ router.post('/verify-otp', validate(verifyOtpSchema), verifyOtp);
  *       400:
  *         description: Invalid Google token
  */
-router.post('/google', googleAuth);
+router.post('/google', controller.googleAuth);
 
 /**
  * @swagger
@@ -256,7 +246,7 @@ router.post('/google', googleAuth);
  *       400:
  *         description: Invalid Facebook token
  */
-router.post('/facebook', facebookAuth);
+router.post('/facebook', controller.facebookAuth);
 
 /**
  * @swagger
@@ -286,7 +276,7 @@ router.post('/facebook', facebookAuth);
  *       401:
  *         description: Invalid credentials or account not verified
  */
-router.post('/login', validate(loginSchema), login);
+router.post('/login', validate(dto.loginSchema), controller.login);
 
 /**
  * @swagger
@@ -300,7 +290,7 @@ router.post('/login', validate(loginSchema), login);
  *       401:
  *         description: No refresh token or invalid/expired refresh token
  */
-router.post('/refresh', refresh);
+router.post('/refresh', controller.refresh);
 
 /**
  * @swagger
@@ -324,7 +314,7 @@ router.post('/refresh', refresh);
  *       200:
  *         description: OTP sent (or silent success if user doesn't exist)
  */
-router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
+router.post('/forgot-password', validate(dto.forgotPasswordSchema), controller.forgotPassword);
 
 /**
  * @swagger
@@ -365,6 +355,6 @@ router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
  *       400:
  *         description: Invalid OTP / validation error
  */
-router.post('/reset-password', validate(resetPasswordSchema), resetPassword);
+router.post('/reset-password', validate(dto.resetPasswordSchema), controller.resetPassword);
 
 export default router;

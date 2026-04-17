@@ -4,7 +4,7 @@ import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 
-import authRoutes from './routes/auth.routes';
+import authRoutes from './modules/auth/auth.routes';
 import dashboardRoutes from './routes/dashboard.routes';
 import driversRoutes from './routes/drivers.routes';
 import ridersRoutes from './routes/riders.routes';
