@@ -1,20 +1,20 @@
-import prisma from '../config/prisma';
+import prisma from '../../config/prisma';
 
 export const getPricingStats = async () => {
-  const [totalCategories, activeCategories, totalVehicles, monthlyRevenue] = await Promise.all([
+  const [totalCategories, activeCategories, inactiveCategories, monthlyRevenue] = await Promise.all([
     prisma.vehicleCategory.count(),
     prisma.vehicleCategory.count({ where: { status: true } }),
-    prisma.vehicleCategory.count(),
+    prisma.vehicleCategory.count({ where: { status: false } }),
     prisma.vehicleCategory.aggregate({
-      _sum: { monthlyMaxRate: true },
+      _sum: { baseFare: true }, 
     }),
   ]);
 
   return {
     totalCategories,
     activeCategories,
-    totalVehicles,
-    monthlyRevenue: monthlyRevenue._sum.monthlyMaxRate || 0,
+    inactiveCategories,
+    monthlyRevenue: monthlyRevenue._sum.baseFare || 0,
   };
 };
 
@@ -41,7 +41,19 @@ export const getCategories = async (page: number = 1, limit: number = 20, status
   ]);
 
   return {
-    data: categories,
+    data: categories.map(cat => ({
+      id: cat.id,
+      name: cat.name,
+      description: cat.description,
+      baseFare: cat.baseFare,
+      ratePerKm: cat.ratePerKm,
+      waitingCharge: cat.waitingCharge,
+      surgeMultiplier: cat.surgeMultiplier,
+      capacity: cat.capacity,
+      features: cat.features,
+      commissionRate: cat.commissionRate,
+      status: cat.status ? 'Active' : 'Inactive',
+    })),
     meta: { page, limit, total, pages: Math.ceil(total / limit) },
   };
 };
@@ -51,13 +63,13 @@ export const createCategory = async (data: any) => {
     data: {
       name: data.name,
       description: data.description,
+      baseFare: data.baseFare,
+      ratePerKm: data.ratePerKm,
+      waitingCharge: data.waitingCharge,
+      surgeMultiplier: data.surgeMultiplier,
+      capacity: data.capacity,
+      features: data.features,
       commissionRate: data.commissionRate,
-      dailyMinRate: data.dailyMinRate,
-      dailyMaxRate: data.dailyMaxRate,
-      weeklyMinRate: data.weeklyMinRate,
-      weeklyMaxRate: data.weeklyMaxRate,
-      monthlyMinRate: data.monthlyMinRate,
-      monthlyMaxRate: data.monthlyMaxRate,
       status: data.status,
     },
   });
@@ -75,13 +87,13 @@ export const updateCategory = async (id: string, data: any) => {
     data: {
       name: data.name,
       description: data.description,
+      baseFare: data.baseFare,
+      ratePerKm: data.ratePerKm,
+      waitingCharge: data.waitingCharge,
+      surgeMultiplier: data.surgeMultiplier,
+      capacity: data.capacity,
+      features: data.features,
       commissionRate: data.commissionRate,
-      dailyMinRate: data.dailyMinRate,
-      dailyMaxRate: data.dailyMaxRate,
-      weeklyMinRate: data.weeklyMinRate,
-      weeklyMaxRate: data.weeklyMaxRate,
-      monthlyMinRate: data.monthlyMinRate,
-      monthlyMaxRate: data.monthlyMaxRate,
       status: data.status,
     },
   });

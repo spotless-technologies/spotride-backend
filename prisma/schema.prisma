@@ -249,19 +249,22 @@ model VehicleCategory {
   id             String  @id @default(uuid())
   name           String  @unique
   description    String?
-  commissionRate Float   @default(15)
+  commissionRate Float   @default(20)
 
-  dailyMinRate   Float
-  dailyMaxRate   Float
-  weeklyMinRate  Float?
-  weeklyMaxRate  Float?
-  monthlyMinRate Float?
-  monthlyMaxRate Float?
+  baseFare      Float @default(800)
+  ratePerKm     Float @default(120)
+  waitingCharge Float @default(20)
+
+  surgeMultiplier Float? @default(1.0)
+
+  capacity Int      @default(4)
+  features String[] @default([]) // e.g. ["Economy", "AC", "Music"]
 
   status Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  trips     Trip[]
 
   @@map("vehicle_categories")
 }
@@ -287,18 +290,20 @@ model ScheduledRide {
 }
 
 model Trip {
-  id              String    @id @default(uuid())
+  id              String           @id @default(uuid())
+  categoryId      String?
+  category        VehicleCategory? @relation(fields: [categoryId], references: [id])
   riderId         String
   driverId        String?
   pickupLocation  Json // { lat: number, lng: number, address?: string }
   dropoffLocation Json // { lat: number, lng: number, address?: string }
   estimatedFare   Float?
   actualFare      Float?
-  currency        String    @default("NGN")
+  currency        String           @default("NGN")
   country         String?
-  status          String    @default("REQUESTED") // REQUESTED, SEARCHING_DRIVER, DRIVER_ASSIGNED, DRIVER_ARRIVED, IN_PROGRESS, COMPLETED, CANCELLED
-  rideType        String    @default("REGULAR") // REGULAR, STANDARD, PREMIUM
-  surgeMultiplier Float?    @default(1.0)
+  status          String           @default("REQUESTED") // REQUESTED, SEARCHING_DRIVER, DRIVER_ASSIGNED, DRIVER_ARRIVED, IN_PROGRESS, COMPLETED, CANCELLED
+  rideType        String           @default("REGULAR") // REGULAR, STANDARD, PREMIUM
+  surgeMultiplier Float?           @default(1.0)
   startTime       DateTime?
   endTime         DateTime?
   revenue         Float?

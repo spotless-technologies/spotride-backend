@@ -13,7 +13,7 @@ import scheduledRidesRoutes from './routes/scheduled-rides.routes';
 import tripManagementRoutes from './routes/trip-management.routes';
 import carRentalListingsRoutes from './routes/car-rental-listings.routes';
 import carRentalBookingsRoutes from './car-rental-bookings/car-rental-bookings.routes';
-import carRentalPricingAndCategoriesRoutes from './car-rental-pricing-and-categories/car-rental-pricing-and-categories.routes';
+import carRentalPricingAndCategoriesRoutes from './modules/car-rental-pricing-and-categories/car-rental-pricing-and-categories.routes';
 import disputesRoutes from './disputes-and-complaints/disputes-and-complaints.routes';
 import liveRentalMonitoringRoutes from './live-rental-monitoring/live-rental-monitoring.routes';
 import supportAnalyticsRoutes from './support-and-analytics/support-and-analytics.routes';
