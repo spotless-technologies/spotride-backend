@@ -145,3 +145,166 @@ export const counterBidOnRide = async (req: Request, res: Response) => {
     trip: updatedTrip 
   });
 };
+
+export const arrivedAtPickup = async (req: Request, res: Response) => {
+  const { tripId } = rideDto.arrivedAtPickupSchema.parse(req.body);
+  const trip = await rideService.arrivedAtPickup(tripId);
+  res.json({ message: "Arrived at pickup location", trip });
+};
+
+export const getTripInfo = async (req: Request, res: Response) => {
+  try {
+    const { tripId } = rideDto.tripInfoSchema.parse(req.params);   
+
+    const trip = await rideService.getTripInfo(tripId);
+
+    res.json(trip);
+  } catch (error: any) {
+    if (error.message === "Trip not found") {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+    console.error("Get Trip Info error:", error);
+    res.status(500).json({ message: "Failed to fetch trip information" });
+  }
+};
+
+export const rateDriver = async (req: Request, res: Response) => {
+  const { tripId, rating, feedback } = rideDto.rateDriverSchema.parse(req.body);
+  await rideService.rateDriver(tripId, rating, feedback);
+  res.json({ message: "Thank you for rating the driver" });
+};
+
+export const cancelRide = async (req: Request, res: Response) => {
+  const userId = (req as any).user?.userId || (req as any).driver?.userId;
+  if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
+  const { tripId } = z.object({ tripId: z.string().uuid() }).parse(req.params);
+  const { reason } = rideDto.cancelRideSchema.parse(req.body);
+
+  const result = await rideService.cancelRide(tripId, userId, reason);
+  res.json({ message: "Ride cancelled successfully", trip: result });
+};
+
+export const getVehicleCategories = async (req: Request, res: Response) => {
+  try {
+    const categories = await rideService.getVehicleCategories();
+
+    if (!categories || categories.length === 0) {
+      return res.json({
+        success: true,
+        message: "No active vehicle categories found",
+        categories: [],
+        count: 0,
+      });
+    }
+
+    res.json({
+      success: true,
+      count: categories.length,
+      categories,
+    });
+  } catch (error: any) {
+    console.error("Error in getVehicleCategories:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch vehicle categories. Please try again later." 
+    });
+  }
+};
+
+export const cancelScheduledRide = async (req: Request, res: Response) => {
+  const riderId = (req as any).user?.userId;
+  if (!riderId) return res.status(401).json({ message: 'Unauthorized' });
+
+  const { scheduledRideId } = z.object({ scheduledRideId: z.string().uuid() }).parse(req.params);
+  const { reason } = rideDto.cancelScheduledRideSchema.parse(req.body);
+
+  const result = await rideService.cancelScheduledRide(scheduledRideId, riderId, reason);
+  res.json({ message: "Scheduled ride cancelled successfully", ride: result });
+};
+
+export const editScheduledTrip = async (req: Request, res: Response) => {
+  const riderId = (req as any).user?.userId;
+  if (!riderId) return res.status(401).json({ message: 'Unauthorized' });
+
+  const { scheduledRideId } = z.object({ scheduledRideId: z.string().uuid() }).parse(req.params);
+  const { scheduledTime } = rideDto.editScheduledTripSchema.parse(req.body);
+
+  const result = await rideService.editScheduledTrip(scheduledRideId, riderId, scheduledTime);
+  res.json({ message: "Scheduled trip updated successfully", ride: result });
+};
+
+// ====================== RIDER MY TRIPS ======================
+export const getRiderMyTrips = async (req: Request, res: Response) => {
+  try {
+    const riderId = (req as any).user?.userId;
+    if (!riderId) {
+      return res.status(401).json({ message: "Unauthorized - Rider ID not found" });
+    }
+
+    const tab = (req.query.tab as string) || 'upcoming';
+
+    // Validate tab parameter
+    const validTabs = ['upcoming', 'past', 'scheduled'];
+    if (!validTabs.includes(tab as string)) {
+      return res.status(400).json({ 
+        message: "Invalid tab. Must be one of: upcoming, past, scheduled" 
+      });
+    }
+
+    const trips = await rideService.getRiderMyTrips(
+      riderId, 
+      tab as 'upcoming' | 'past' | 'scheduled'
+    );
+
+    res.json({
+      success: true,
+      tab,
+      count: trips.length,
+      trips,                    
+    });
+  } catch (error: any) {
+    console.error("Error fetching rider my trips:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch your trips. Please try again later.",
+      error: error.message 
+    });
+  }
+};
+
+// ====================== DRIVER MY TRIPS ======================
+export const getDriverMyTrips = async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).driver?.driverId;   
+    if (!driverId) {
+      return res.status(401).json({ message: "Unauthorized - Driver profile not found" });
+    }
+
+    const { tab = 'completed' } = req.query;
+
+    // Validate tab parameter
+    const validTabs = ['completed', 'scheduled'];
+    if (!validTabs.includes(tab as string)) {
+      return res.status(400).json({ 
+        message: "Invalid tab. Must be one of: completed, scheduled" 
+      });
+    }
+
+    const trips = await rideService.getDriverMyTrips(
+      driverId, 
+      tab as 'completed' | 'scheduled'
+    );
+
+    res.json({
+      success: true,
+      tab,
+      count: trips.length,
+      trips,                    
+    });
+  } catch (error: any) {
+    console.error("Error fetching driver my trips:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch your trips. Please try again later.",
+      error: error.message 
+    });
+  }
+};

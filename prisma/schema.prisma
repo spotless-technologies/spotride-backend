@@ -283,6 +283,8 @@ model ScheduledRide {
   driverId        String?
   driver          Driver?  @relation(fields: [driverId], references: [id])
 
+  riderFeedback   String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -315,6 +317,8 @@ model Trip {
   promoCode        String?
   riderRating      Float?
   riderFeedback    String?
+  driverRating    Float?           
+  driverFeedback  String?
 
   payment Payment?
 
