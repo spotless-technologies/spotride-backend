@@ -1,4 +1,4 @@
-import prisma from '../config/prisma';
+import prisma from '../../config/prisma';
 import { startOfDay, endOfDay, subDays, subWeeks, subMonths } from 'date-fns';
 
 export const getOverviewStats = async (period: 'daily' | 'weekly' | 'monthly' = 'monthly') => {
