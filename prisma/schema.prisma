@@ -239,8 +239,11 @@ model CarOwner {
 
   carRentals CarRental[]
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  carOwnerEarningsSummary CarOwnerEarningsSummary?
+  carOwnerPayoutRequests  CarOwnerPayoutRequest[]
+  carOwnerPayoutHistories CarOwnerPayoutHistory[]
 
   @@map("car_owners")
 }
@@ -283,7 +286,7 @@ model ScheduledRide {
   driverId        String?
   driver          Driver?  @relation(fields: [driverId], references: [id])
 
-  riderFeedback   String?
+  riderFeedback String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -317,8 +320,8 @@ model Trip {
   promoCode        String?
   riderRating      Float?
   riderFeedback    String?
-  driverRating    Float?           
-  driverFeedback  String?
+  driverRating     Float?
+  driverFeedback   String?
 
   payment Payment?
 
@@ -737,4 +740,57 @@ model PayoutRun {
   @@index([runDate])
   @@index([status])
   @@map("payout_runs")
+}
+
+model CarOwnerEarningsSummary {
+  id         String   @id @default(uuid())
+  carOwnerId String   @unique
+  carOwner   CarOwner @relation(fields: [carOwnerId], references: [id], onDelete: Cascade)
+
+  totalEarnings    Float @default(0)
+  pendingPayouts   Float @default(0)
+  activeRentals    Int   @default(0)
+  completedRentals Int   @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("car_owner_earnings_summary")
+}
+
+model CarOwnerPayoutRequest {
+  id         String   @id @default(uuid())
+  carOwnerId String
+  carOwner   CarOwner @relation(fields: [carOwnerId], references: [id], onDelete: Cascade)
+
+  amount      Float
+  status      String   @default("PENDING") // PENDING, APPROVED, DECLINED, PAID
+  requestDate DateTime @default(now())
+  reason      String?
+  adminNotes  String?
+
+  approvedAt DateTime?
+  declinedAt DateTime?
+  paidAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("car_owner_payout_requests")
+}
+
+model CarOwnerPayoutHistory {
+  id         String   @id @default(uuid())
+  carOwnerId String
+  carOwner   CarOwner @relation(fields: [carOwnerId], references: [id], onDelete: Cascade)
+
+  amount        Float
+  status        String   @default("PAID")
+  transactionId String?
+  payoutDate    DateTime @default(now())
+  method        String // BANK_TRANSFER, etc.
+
+  createdAt DateTime @default(now())
+
+  @@map("car_owner_payout_history")
 }

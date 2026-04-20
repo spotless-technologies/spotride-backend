@@ -22,6 +22,7 @@ import courierManagementRoutes from './modules/courier-management/courier-manage
 import courierManagementOperationsRoutes from './modules/courier-management-operations/courier-management-operations.routes';
 import courierGrowthManagementRoutes from './modules/courier-growth-management/courier-growth-management.routes';
 import driverEarningsWalletRoutes from './modules/driver-earnings-and-wallet/driver-earnings-and-wallet.routes';
+import carOwnerEarningsRoutes from './modules/car-owner-earnings-and-payouts/car-owner-earnings-and-payouts.routes';
 
 import driverProfileRoutes from './modules/driver-profile/driver-profile.routes';
 import driverStatusRoutes from './routes/driver-status.routes';
@@ -150,6 +151,7 @@ app.use('/api/admin', courierManagementRoutes);
 app.use('/api/admin', courierManagementOperationsRoutes);
 app.use('/api/admin', courierGrowthManagementRoutes);
 app.use('/api/admin', driverEarningsWalletRoutes);
+app.use('/api/admin', carOwnerEarningsRoutes);
 
 app.use('/driver', driverProfileRoutes);
 app.use('/driver', driverStatusRoutes);
