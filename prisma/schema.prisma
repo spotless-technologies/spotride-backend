@@ -305,6 +305,7 @@ model Trip {
   estimatedFare   Float?
   actualFare      Float?
   currency        String           @default("NGN")
+  city            String?
   country         String?
   status          String           @default("REQUESTED") // REQUESTED, SEARCHING_DRIVER, DRIVER_ASSIGNED, DRIVER_ARRIVED, IN_PROGRESS, COMPLETED, CANCELLED
   rideType        String           @default("REGULAR") // REGULAR, STANDARD, PREMIUM

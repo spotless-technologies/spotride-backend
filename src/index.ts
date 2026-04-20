@@ -23,6 +23,7 @@ import courierManagementOperationsRoutes from './modules/courier-management-oper
 import courierGrowthManagementRoutes from './modules/courier-growth-management/courier-growth-management.routes';
 import driverEarningsWalletRoutes from './modules/driver-earnings-and-wallet/driver-earnings-and-wallet.routes';
 import carOwnerEarningsRoutes from './modules/car-owner-earnings-and-payouts/car-owner-earnings-and-payouts.routes';
+import transactionHistoryRoutes from './modules/transaction-history-and-revenue-reports/transaction-history-and-revenue-reports.routes';
 
 import driverProfileRoutes from './modules/driver-profile/driver-profile.routes';
 import driverStatusRoutes from './routes/driver-status.routes';
@@ -65,9 +66,9 @@ const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'SpotRide Auth API',
+      title: 'SpotRide API',
       version: '1.0.0',
-      description: 'Authentication API – email/phone/social + OTP verification + password reset',
+      description: '**SpotRide** - Complete Ride-Hailing, Car Rental & Courier Platform Backend API',
     },
 servers: [
   {
@@ -152,6 +153,7 @@ app.use('/api/admin', courierManagementOperationsRoutes);
 app.use('/api/admin', courierGrowthManagementRoutes);
 app.use('/api/admin', driverEarningsWalletRoutes);
 app.use('/api/admin', carOwnerEarningsRoutes);
+app.use('/api/admin', transactionHistoryRoutes);
 
 app.use('/driver', driverProfileRoutes);
 app.use('/driver', driverStatusRoutes);
