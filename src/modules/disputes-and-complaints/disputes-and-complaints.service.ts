@@ -1,4 +1,4 @@
-import prisma from '../config/prisma';
+import prisma from '../../config/prisma';
 
 export const getDisputesStats = async () => {
   const [totalDisputes, open, underReview, highPriority] = await Promise.all([

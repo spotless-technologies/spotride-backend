@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import { adminAuth } from '../middleware/admin';
+import { adminAuth } from '../../middleware/admin';
 import {
   getDisputesStats,
   getDisputes,
   getDisputeById,
   resolveDispute,
 } from './disputes-and-complaints.controller';
-import { validate } from '../middleware/validate';
+import { validate } from '../../middleware/validate';
 import { resolveDisputeSchema } from './disputes-and-complaints.dto';
 
 const router = Router();
