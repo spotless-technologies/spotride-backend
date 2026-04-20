@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { adminAuth } from '../middleware/admin';
+import { adminAuth } from '../../middleware/admin';
 import {
   getRentalBookingsStats,
   getRentalBookings,
@@ -8,7 +8,7 @@ import {
   markAsReturned,
   adjustBooking,
 } from './car-rental-bookings.controller';
-import { validate } from '../middleware/validate';
+import { validate } from '../../middleware/validate';
 import {
   cancelBookingSchema,
   returnBookingSchema,

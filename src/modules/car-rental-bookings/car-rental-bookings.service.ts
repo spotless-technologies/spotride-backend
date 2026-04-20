@@ -1,4 +1,4 @@
-import prisma from '../config/prisma';
+import prisma from '../../config/prisma';
 
 export const getBookingsStats = async () => {
   const [total, active, completed, upcoming, cancelled] = await Promise.all([
