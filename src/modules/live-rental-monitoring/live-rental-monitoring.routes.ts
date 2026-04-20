@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { adminAuth } from '../middleware/admin';
+import { adminAuth } from '../../middleware/admin';
 import {
   getLiveRentalStats,
   getActiveRentals,

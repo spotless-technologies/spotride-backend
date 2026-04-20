@@ -15,7 +15,7 @@ import carRentalListingsRoutes from './routes/car-rental-listings.routes';
 import carRentalBookingsRoutes from './modules/car-rental-bookings/car-rental-bookings.routes';
 import carRentalPricingAndCategoriesRoutes from './modules/car-rental-pricing-and-categories/car-rental-pricing-and-categories.routes';
 import disputesRoutes from './modules/disputes-and-complaints/disputes-and-complaints.routes';
-import liveRentalMonitoringRoutes from './live-rental-monitoring/live-rental-monitoring.routes';
+import liveRentalMonitoringRoutes from './modules/live-rental-monitoring/live-rental-monitoring.routes';
 import supportAnalyticsRoutes from './support-and-analytics/support-and-analytics.routes';
 import hubsAndCitiesManagementRoutes from './modules/hubs-and-cities-management/hubs-and-cities-management.routes';
 import courierManagementRoutes from './modules/courier-management/courier-management.routes';
