@@ -24,6 +24,7 @@ import courierGrowthManagementRoutes from './modules/courier-growth-management/c
 import driverEarningsWalletRoutes from './modules/driver-earnings-and-wallet/driver-earnings-and-wallet.routes';
 import carOwnerEarningsRoutes from './modules/car-owner-earnings-and-payouts/car-owner-earnings-and-payouts.routes';
 import transactionHistoryRoutes from './modules/transaction-history-and-revenue-reports/transaction-history-and-revenue-reports.routes';
+import promoCodesRoutes from './modules/promo-codes-and-discounts/promo-codes-and-discounts.routes';
 
 import driverProfileRoutes from './modules/driver-profile/driver-profile.routes';
 import driverStatusRoutes from './routes/driver-status.routes';
@@ -154,6 +155,7 @@ app.use('/api/admin', courierGrowthManagementRoutes);
 app.use('/api/admin', driverEarningsWalletRoutes);
 app.use('/api/admin', carOwnerEarningsRoutes);
 app.use('/api/admin', transactionHistoryRoutes);
+app.use('/api/admin', promoCodesRoutes);
 
 app.use('/driver', driverProfileRoutes);
 app.use('/driver', driverStatusRoutes);
