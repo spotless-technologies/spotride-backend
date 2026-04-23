@@ -643,6 +643,159 @@ export const getDriverMyTrips = async (driverId: string, tab: 'completed' | 'sch
   });
 };
 
+// ====================== GET RIDE OFFERS (FOR RIDER) ======================
+export const getRideOffers = async (tripId: string, riderId: string) => {
+  // First, verify the trip belongs to this rider
+  const trip = await prisma.trip.findUnique({
+    where: { id: tripId },
+    include: {
+      rider: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+        },
+      },
+    },
+  });
+
+  if (!trip) {
+    throw new Error("Trip not found");
+  }
+
+  if (trip.riderId !== riderId) {
+    throw new Error("You don't have permission to view offers for this ride");
+  }
+  
+  // First, get the main trip info
+  const mainTrip = {
+    tripId: trip.id,
+    status: trip.status,
+    estimatedFare: trip.estimatedFare,
+    actualFare: trip.actualFare,
+    pickupLocation: trip.pickupLocation,
+    dropoffLocation: trip.dropoffLocation,
+    rideType: trip.rideType,
+    surgeMultiplier: trip.surgeMultiplier,
+    createdAt: trip.createdAt,
+  };
+
+  // Get the driver who accepted the ride (if any)
+  let acceptedDriver = null;
+  if (trip.driverId && trip.status === "DRIVER_ASSIGNED") {
+    const driver = await prisma.driver.findUnique({
+      where: { id: trip.driverId },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            profilePicture: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    if (driver) {
+      acceptedDriver = {
+        driverId: driver.id,
+        fullName: `${driver.user.firstName} ${driver.user.lastName}`.trim(),
+        profilePicture: driver.user.profilePicture,
+        phone: driver.user.phone,
+        rating: driver.rating,
+        vehicleType: driver.vehicleType,
+        vehicleModel: driver.vehicleModel,
+        vehicleColor: driver.vehicleColor,
+        vehiclePlate: driver.vehiclePlate,
+        offeredPrice: trip.actualFare || trip.estimatedFare || 0,
+        status: "ACCEPTED",
+        acceptedAt: trip.updatedAt,
+      };
+    }
+  }
+  
+  const counterBids = await prisma.counterBid.findMany({
+    where: {
+      tripId: trip.id,
+      status: "PENDING",
+      ...(trip.driverId ? { driverId: { not: trip.driverId } } : {}),
+    },
+    include: {
+      driver: {
+        include: {
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+              profilePicture: true,
+              phone: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: {
+      offeredPrice: 'asc',
+    },
+  });
+
+  const formattedCounterBids = counterBids.map(bid => ({
+    driverId: bid.driver.id,
+    fullName: `${bid.driver.user.firstName} ${bid.driver.user.lastName}`.trim(),
+    profilePicture: bid.driver.user.profilePicture,
+    phone: bid.driver.user.phone,
+    rating: bid.driver.rating,
+    vehicleType: bid.driver.vehicleType,
+    vehicleModel: bid.driver.vehicleModel,
+    vehicleColor: bid.driver.vehicleColor,
+    vehiclePlate: bid.driver.vehiclePlate,
+    offeredPrice: bid.offeredPrice ?? 0,
+    status: "COUNTER_BID",
+    bidMessage: bid.message,
+    bidExpiresAt: bid.expiresAt,
+    createdAt: bid.createdAt,
+  }));
+
+  // Calculate best offer (lowest price)
+  const allOffers = [
+    ...(acceptedDriver ? [acceptedDriver] : []),
+    ...formattedCounterBids,
+  ];
+
+  const bestOffer = allOffers.length > 0
+    ? allOffers.reduce((best, current) => {
+        const bestPrice = best.offeredPrice ?? Infinity;
+        const currentPrice = current.offeredPrice ?? Infinity;
+        return currentPrice < bestPrice ? current : best;
+      })
+    : null;
+
+  // Count total interested drivers
+  const interestedCount = await prisma.counterBid.count({
+    where: {
+      tripId: trip.id,
+      status: "PENDING",
+    },
+  });
+
+  return {
+    trip: mainTrip,
+    currentStatus: trip.status,
+    acceptedDriver,
+    counterBids: formattedCounterBids,
+    bestOffer,
+    totalInterestedDrivers: interestedCount + (acceptedDriver ? 1 : 0),
+    hasAcceptedDriver: !!acceptedDriver,
+    canAcceptCounterBid: trip.status === "REQUESTED",
+    message: trip.status === "DRIVER_ASSIGNED" 
+      ? "A driver has accepted your ride request" 
+      : trip.status === "DRIVER_COUNTER_BID"
+      ? `${formattedCounterBids.length} driver(s) have made counter-offers on your ride`
+      : "Waiting for drivers to respond to your ride request",
+  };
+};
+
 export const initializePaystackPayment = async (tripId: string, amount: number, email: string) => {
   const res = await paystack.post('/transaction/initialize', {
     amount: Math.round(amount * 100),

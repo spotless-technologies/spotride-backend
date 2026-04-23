@@ -24,6 +24,7 @@ import {
   editScheduledTrip,
   getRiderMyTrips,
   getDriverMyTrips,
+  getRideOffers,
 } from './ride-booking.controller';
 
 import {
@@ -41,6 +42,7 @@ import {
   cancelRideSchema,
   cancelScheduledRideSchema,
   editScheduledTripSchema,
+  getRideOffersSchema,
 } from './ride-booking.dto';
 
 const router = Router();
@@ -629,6 +631,79 @@ router.post('/rides/scheduled/:scheduledRideId/cancel', riderAuth, validate(canc
  *         description: Scheduled trip updated successfully
  */
 router.put('/rides/scheduled/:scheduledRideId/edit', riderAuth, validate(editScheduledTripSchema), editScheduledTrip);
+
+/**
+ * @swagger
+ * /api/rides/{tripId}/offers:
+ *   get:
+ *     summary: Rider views all driver offers and counter-bids for their ride request
+ *     tags: [Ride Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     description: |
+ *       Returns all drivers who have:
+ *       - Accepted the ride (the winning driver)
+ *       - Made counter-bids on the ride
+ *       
+ *       Shows:
+ *       - Driver details (name, photo, rating, vehicle info)
+ *       - Offered price for each driver
+ *       - Best available offer (lowest price)
+ *       - Total number of interested drivers
+ *       
+ *       This helps riders see competition and choose the best offer.
+ *     parameters:
+ *       - in: path
+ *         name: tripId
+ *         required: true
+ *         schema: { type: string, format: uuid }
+ *         description: The ID of the ride request
+ *     responses:
+ *       200:
+ *         description: List of all driver offers for this ride
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               trip:
+ *                 tripId: "trip-uuid"
+ *                 status: "REQUESTED"
+ *                 estimatedFare: 2500
+ *                 pickupLocation: { "address": "Lekki Phase 1" }
+ *                 dropoffLocation: { "address": "Airport" }
+ *               currentStatus: "REQUESTED"
+ *               acceptedDriver: null
+ *               counterBids:
+ *                 - driverId: "driver-uuid-1"
+ *                   fullName: "Emeka Okafor"
+ *                   profilePicture: "https://..."
+ *                   rating: 4.8
+ *                   vehicleModel: "Toyota Camry"
+ *                   offeredPrice: 2300
+ *                   status: "COUNTER_BID"
+ *                   createdAt: "2024-02-28T14:30:00Z"
+ *                 - driverId: "driver-uuid-2"
+ *                   fullName: "John Doe"
+ *                   profilePicture: "https://..."
+ *                   rating: 4.5
+ *                   vehicleModel: "Honda Accord"
+ *                   offeredPrice: 2400
+ *                   status: "COUNTER_BID"
+ *                   createdAt: "2024-02-28T14:35:00Z"
+ *               bestOffer:
+ *                 driverId: "driver-uuid-1"
+ *                 fullName: "Emeka Okafor"
+ *                 offeredPrice: 2300
+ *               totalInterestedDrivers: 2
+ *               hasAcceptedDriver: false
+ *               canAcceptCounterBid: true
+ *               message: "2 driver(s) have made counter-offers on your ride"
+ *       403:
+ *         description: You don't have permission to view offers for this ride
+ *       404:
+ *         description: Trip not found
+ */
+router.get('/rides/:tripId/offers', riderAuth, validate(getRideOffersSchema, 'params'), getRideOffers);
 
 /**
  * @swagger

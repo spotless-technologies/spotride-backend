@@ -9,6 +9,10 @@ export const rideEstimateSchema = z.object({
   country: z.string().min(2).max(3).optional().default('NG'),
 });
 
+export const getRideOffersSchema = z.object({
+  tripId: z.string().uuid("Valid trip ID is required"),
+});
+
 export const requestRideSchema = rideEstimateSchema.extend({
   promoCode: z.string().optional(),
   estimatedFare: z.number().positive(),

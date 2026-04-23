@@ -308,3 +308,34 @@ export const getDriverMyTrips = async (req: Request, res: Response) => {
     });
   }
 };
+
+// ====================== GET RIDE OFFERS (FOR RIDER) ======================
+export const getRideOffers = async (req: Request, res: Response) => {
+  try {
+    const riderId = (req as any).user?.userId;
+    if (!riderId) {
+      return res.status(401).json({ message: "Unauthorized - Rider ID not found" });
+    }
+
+    const { tripId } = rideDto.getRideOffersSchema.parse(req.params);
+
+    const result = await rideService.getRideOffers(tripId, riderId);
+
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error: any) {
+    if (error.message === "Trip not found") {
+      return res.status(404).json({ message: error.message });
+    }
+    if (error.message === "You don't have permission to view offers for this ride") {
+      return res.status(403).json({ message: error.message });
+    }
+    console.error("Error fetching ride offers:", error);
+    res.status(500).json({ 
+      message: "Failed to fetch ride offers",
+      error: error.message 
+    });
+  }
+};
