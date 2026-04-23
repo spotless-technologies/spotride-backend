@@ -20,6 +20,102 @@ enum UserRole {
   ADMIN
 }
 
+// Add to your prisma/schema.prisma
+
+enum AdminRole {
+  SUPER_ADMIN
+  FINANCE_ADMIN
+  SUPPORT_ADMIN
+  OPERATIONS_ADMIN
+  ANALYTICS_ADMIN
+}
+
+enum AdminStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum ModulePermission {
+  DASHBOARD
+  USER_MANAGEMENT
+  TRIP_MANAGEMENT
+  COURIER_MANAGEMENT
+  CAR_RENTAL_MANAGEMENT
+  VEHICLE_PRICING
+  FINANCIALS
+  PROMOTIONS
+  ADMIN_SECURITY
+  ACTIVITY_LOGS
+  EMERGENCY_SAFETY
+  SETTINGS
+}
+
+model AdminUser {
+  id               String      @id @default(uuid())
+  fullName         String
+  email            String      @unique
+  password         String
+  role             AdminRole
+  status           AdminStatus @default(ACTIVE)
+  twoFactorEnabled Boolean     @default(false)
+  twoFactorSecret  String?
+
+  // Session & Security
+  lastLoginAt     DateTime?
+  lastLoginIp     String?
+  lastLoginDevice String?
+
+  createdBy String? // Admin ID who created this user
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  rolePermissions RolePermission[]
+  activityLogs    AdminActivityLog[]
+
+  @@map("admin_users")
+}
+
+model RolePermission {
+  id        String           @id @default(uuid())
+  role      AdminRole
+  module    ModulePermission
+  canView   Boolean          @default(true)
+  canCreate Boolean          @default(false)
+  canEdit   Boolean          @default(false)
+  canDelete Boolean          @default(false)
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  adminUser   AdminUser? @relation(fields: [adminUserId], references: [id])
+  adminUserId String?
+
+  @@unique([role, module])
+  @@map("role_permissions")
+}
+
+model AdminActivityLog {
+  id      String    @id @default(uuid())
+  adminId String
+  admin   AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  action     String // "CREATE", "EDIT", "DELETE", "LOGIN", "LOGOUT", "SUSPEND", "ACTIVATE"
+  module     String // e.g., "ADMIN_USER", "ROLE", "PERMISSION"
+  targetId   String? // ID of affected resource
+  targetName String? // Name/Email of affected resource
+  changes    Json? // Before/after changes
+  ipAddress  String?
+  userAgent  String?
+
+  createdAt DateTime @default(now())
+
+  @@index([adminId])
+  @@index([createdAt])
+  @@index([module])
+  @@map("admin_activity_logs")
+}
+
 enum VehicleType {
   SEDAN
   SUV
@@ -121,6 +217,7 @@ model Driver {
   courierAlerts            CourierAlert[]
   driverWalletTransactions DriverWalletTransaction[]
   driverPayouts            DriverPayout[]
+  counterBids              CounterBid[]
 
   @@map("drivers")
 }
@@ -332,8 +429,29 @@ model Trip {
   rider        User          @relation(fields: [riderId], references: [id])
   driver       Driver?       @relation(fields: [driverId], references: [id])
   conversation Conversation?
+  counterBids  CounterBid[]
 
   @@map("trips")
+}
+
+model CounterBid {
+  id           String    @id @default(uuid())
+  tripId       String
+  trip         Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  driverId     String
+  driver       Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  offeredPrice Float
+  message      String?
+  status       String    @default("PENDING") // PENDING, ACCEPTED, EXPIRED, WITHDRAWN
+  expiresAt    DateTime? // Optional: bid expires after certain time
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([tripId, driverId])
+  @@index([tripId])
+  @@index([driverId])
+  @@index([status])
+  @@map("counter_bids")
 }
 
 model Wallet {
@@ -445,6 +563,8 @@ model Delivery {
   status String @default("In Transit") // In Transit, Delivered, Failed, Cancelled
 
   category String // Food & Beverages, Electronics, Documents, Groceries, Fragile Items, Retail Goods, Medical Supplies
+  categoryId   String? 
+  courierCategory CourierCategory? @relation(fields: [categoryId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -563,6 +683,8 @@ model CourierCategory {
   pricingMultiplier  Float    @default(1.0)
   maxDeliveryWindow  Int? // in minutes
   requirements       String[] @default([])
+
+  deliveries Delivery[]
 
   isActive Boolean @default(true)
 
