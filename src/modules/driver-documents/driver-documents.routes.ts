@@ -19,7 +19,7 @@ router.use(driverAuth);
 
 /**
  * @swagger
- * /driver/documents:
+ * /api/driver/documents:
  *   post:
  *     summary: Upload multiple driver and vehicle documents
  *     tags: [Driver Documents]
@@ -73,7 +73,7 @@ router.post(
 
 /**
  * @swagger
- * /driver/documents:
+ * /api/driver/documents:
  *   get:
  *     summary: Get all uploaded documents with status and expiry dates
  *     tags: [Driver Documents]
