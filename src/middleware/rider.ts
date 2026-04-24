@@ -17,6 +17,15 @@ export const riderAuth = async (req: RiderRequest, res: Response, next: NextFunc
 
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET) as { userId: string };
+
+    const blacklisted = await prisma.blacklistedToken.findFirst({
+      where: { token: token }
+    });
+    
+    if (blacklisted) {
+      return res.status(401).json({ message: 'Token has been revoked. Please login again.' });
+    }
+
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
       select: { id: true, role: true },

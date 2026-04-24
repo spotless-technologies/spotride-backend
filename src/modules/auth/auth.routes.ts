@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { validate } from '../../middleware/validate';
 import * as controller from './auth.controller';
 import * as dto from './auth.dto';
+import { authMiddleware } from '../../middleware/auth';
 
 const router = Router();
 
@@ -356,5 +357,32 @@ router.post('/forgot-password', validate(dto.forgotPasswordSchema), controller.f
  *         description: Invalid OTP / validation error
  */
 router.post('/reset-password', validate(dto.resetPasswordSchema), controller.resetPassword);
+
+/**
+ * @swagger
+ * /api/auth/logout:
+ *   post:
+ *     summary: Logout user and invalidate refresh token
+ *     tags: [Auth]
+ *     description: Logs out the authenticated user. Pass your access token in the Authorization header.
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Successfully logged out
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Logged out successfully"
+ *       401:
+ *         description: Unauthorized - No token provided or invalid token
+ *       500:
+ *         description: Server error
+ */
+router.post('/logout', authMiddleware, controller.logout);
 
 export default router;

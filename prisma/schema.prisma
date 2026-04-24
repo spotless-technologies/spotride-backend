@@ -157,7 +157,17 @@ model User {
 
   @@map("users")
 }
+model BlacklistedToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
 
+  @@index([token])
+  @@index([expiresAt])
+  @@map("blacklisted_tokens")
+}
 model Driver {
   id     String @id @default(uuid())
   userId String @unique

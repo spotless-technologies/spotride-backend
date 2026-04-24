@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import * as authService from './auth.service';
 import * as dto from './auth.dto';
+import { AuthRequest } from '../../middleware/auth';
 
 export const registerEmail = async (req: Request, res: Response) => {
   try {
@@ -194,5 +195,24 @@ export const resetPassword = async (req: Request, res: Response) => {
     res.json(result);
   } catch (error: any) {
     res.status(400).json({ message: error.message || "Password reset failed" });
+  }
+};
+
+export const logout = async (req: Request, res: Response) => {
+  try {
+    const authReq = req as AuthRequest;
+    const token = req.headers.authorization?.split(' ')[1] || '';
+    
+    await authService.logout(authReq.user.userId, token);
+    
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+    
+    res.json({ message: "Logged out successfully" });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
   }
 };

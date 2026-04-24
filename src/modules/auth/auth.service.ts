@@ -8,6 +8,7 @@ import { OAuth2Client } from 'google-auth-library';
 import axios from 'axios';
 import env from '../../config/env';
 import { UserRole } from '@prisma/client';
+import jwt from 'jsonwebtoken';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
@@ -351,6 +352,26 @@ export const resetPassword = async (identifier: string, otp: string, newPassword
   });
 
   return { message: "Password reset successfully" };
+};
+
+export const logout = async (userId: string, token: string) => {
+  // Get token expiry from the token itself
+  const decoded = jwt.decode(token) as { exp: number };
+  const expiresAt = new Date(decoded.exp * 1000);
+  
+  // Blacklist the token
+  await prisma.blacklistedToken.create({
+    data: {
+      token,
+      userId,
+      expiresAt,
+    },
+  });
+  
+  // Delete refresh tokens
+  await prisma.refreshToken.deleteMany({ where: { userId } });
+  
+  return { message: "Logged out successfully" };
 };
 
 // ====================== GENERATE TOKENS FOR NEWLY VERIFIED USER ======================
