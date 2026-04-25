@@ -159,7 +159,7 @@ app.use('/api/admin', transactionHistoryRoutes);
 app.use('/api/admin', promoCodesRoutes);
 // app.use('/api/admin', adminRolesAndPermissionsRoutes);
 
-app.use('/driver', driverProfileRoutes);
+app.use('/api/driver', driverProfileRoutes);
 app.use('/driver', driverStatusRoutes);
 app.use('/driver', rideRequestsRoutes);
 app.use('/driver', driverTripsRoutes);

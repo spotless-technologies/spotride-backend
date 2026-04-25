@@ -53,9 +53,8 @@ enum ModulePermission {
 
 model AdminUser {
   id               String      @id @default(uuid())
-  fullName         String
-  email            String      @unique
-  password         String
+  userId           String      @unique // Link to User table
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   role             AdminRole
   status           AdminStatus @default(ACTIVE)
   twoFactorEnabled Boolean     @default(false)
@@ -154,6 +153,8 @@ model User {
   trips          Trip[]
   notifications  Notification[]
   wallet         Wallet?
+
+  adminUser      AdminUser?
 
   @@map("users")
 }
