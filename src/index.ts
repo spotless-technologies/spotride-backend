@@ -31,13 +31,12 @@ import driverProfileRoutes from './modules/driver-profile/driver-profile.routes'
 import driverStatusRoutes from './routes/driver-status.routes';
 import rideRequestsRoutes from './routes/ride-requests.routes';
 import driverTripsRoutes from './routes/driver-trips.routes';
-import driverEarningsRoutes from './routes/driver-earnings.routes';
 import driverMapRoutes from './routes/driver-map.routes';
 import driverNotificationsRoutes from './routes/driver-notifications.routes';
 import driverSettingsRoutes from './routes/driver-settings.routes';
 import driverVehicleRoutes from './modules/driver-vehicle/driver-vehicle.routes';
 import driverDocumentsRoutes from './modules/driver-documents/driver-documents.routes';
-
+import driverEarningsAndPerformanceRoutes from './modules/driver-earnings-and-performance/driver-earnings-and-performance.routes';
 
 import rideBookingRoutes from './modules/ride-booking/ride-booking.routes';
 
@@ -163,7 +162,7 @@ app.use('/api/driver', driverProfileRoutes);
 app.use('/driver', driverStatusRoutes);
 app.use('/driver', rideRequestsRoutes);
 app.use('/driver', driverTripsRoutes);
-app.use('/driver', driverEarningsRoutes);
+app.use('/api/driver', driverEarningsAndPerformanceRoutes);
 app.use('/driver', driverMapRoutes);
 app.use('/driver', driverNotificationsRoutes);
 app.use('/driver', driverVehicleRoutes);
