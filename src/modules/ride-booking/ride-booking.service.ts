@@ -85,6 +85,92 @@ export const startTrip = async (tripId: string) => {
   });
 };
 
+// ====================== DRIVER ARRIVING FOR PICKUP SERVICE ======================
+export const driverArrivingForPickup = async (driverId: string, tripId: string, driverLat: number, driverLng: number, etaMinutes?: number) => {
+  // Verify the trip belongs to this driver
+  const trip = await prisma.trip.findUnique({
+    where: { id: tripId },
+    include: {
+      rider: {
+        select: {
+          firstName: true,
+          lastName: true,
+          profilePicture: true,
+          phone: true,
+        },
+      },
+      driver: {
+        include: {
+          user: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!trip) {
+    throw new Error("Trip not found");
+  }
+
+  if (trip.driverId !== driverId) {
+    throw new Error("You don't have permission for this trip");
+  }
+
+  if (trip.status !== "DRIVER_ASSIGNED") {
+    throw new Error(`Cannot update arrival. Current status: ${trip.status}`);
+  }
+
+  // Update driver's current location
+  await prisma.driver.update({
+    where: { id: driverId },
+    data: {
+      currentLocation: { lat: driverLat, lng: driverLng },
+      lastLocationUpdate: new Date(),
+    },
+  });
+
+  // Calculate distance from driver to pickup (for verification)
+  const pickup = trip.pickupLocation as any;
+  const distanceToPickup = haversineKm(driverLat, driverLng, pickup.lat, pickup.lng);
+  const calculatedEta = Math.round((distanceToPickup / 40) * 60); // 40 km/h average
+
+  const arrivalData = {
+    tripId: trip.id,
+    status: trip.status,
+    driver: {
+      id: driverId,
+      name: `${trip.driver?.user?.firstName} ${trip.driver?.user?.lastName}`.trim() || "Driver",
+    },
+    rider: {
+      name: `${trip.rider.firstName} ${trip.rider.lastName}`.trim(),
+      phone: trip.rider.phone,
+      photo: trip.rider.profilePicture,
+    },
+    pickupLocation: {
+      address: pickup?.address || "Pickup location",
+      lat: pickup?.lat,
+      lng: pickup?.lng,
+    },
+    dropoffLocation: {
+      address: (trip.dropoffLocation as any)?.address || "Destination",
+    },
+    eta: etaMinutes || calculatedEta,
+    distanceToPickup: Number(distanceToPickup.toFixed(2)),
+    estimatedFare: trip.estimatedFare,
+    nearbyStreets: [],
+    rideType: trip.rideType,
+    cashPaymentOption: true,
+    canEmergencySOS: true,
+    canCancelTrip: true,
+  };
+
+  return arrivalData;
+};
+
 export const endTrip = async (tripId: string, actualFare?: number) => {
   const trip = await prisma.trip.findUnique({
     where: { id: tripId },
@@ -667,6 +753,21 @@ export const getRideOffers = async (tripId: string, riderId: string) => {
     throw new Error("You don't have permission to view offers for this ride");
   }
   
+  // If trip has been started (IN_PROGRESS, COMPLETED), don't show offers
+  if (trip.status === "IN_PROGRESS" || trip.status === "COMPLETED") {
+    return {
+      trip: null,
+      currentStatus: trip.status,
+      acceptedDriver: null,
+      counterBids: [],
+      bestOffer: null,
+      totalInterestedDrivers: 0,
+      hasAcceptedDriver: false,
+      canAcceptCounterBid: false,
+      message: "This trip has already started or been completed. No new offers available.",
+    };
+  }
+  
   // First, get the main trip info
   const mainTrip = {
     tripId: trip.id,
@@ -715,10 +816,14 @@ export const getRideOffers = async (tripId: string, riderId: string) => {
     }
   }
   
+  // Limit counter bids to maximum 5 drivers per ride request
+  const MAX_DRIVERS_PER_RIDE = 5;
+  
   const counterBids = await prisma.counterBid.findMany({
     where: {
       tripId: trip.id,
       status: "PENDING",
+      // Exclude the accepted driver if one exists
       ...(trip.driverId ? { driverId: { not: trip.driverId } } : {}),
     },
     include: {
@@ -736,8 +841,10 @@ export const getRideOffers = async (tripId: string, riderId: string) => {
       },
     },
     orderBy: {
-      offeredPrice: 'asc',
+      offeredPrice: 'asc', 
     },
+    // Limit to maximum 5 drivers
+    take: MAX_DRIVERS_PER_RIDE,
   });
 
   const formattedCounterBids = counterBids.map(bid => ({
@@ -771,7 +878,7 @@ export const getRideOffers = async (tripId: string, riderId: string) => {
       })
     : null;
 
-  // Count total interested drivers
+  // Count only active pending counter bids (max 5 reflected in count)
   const interestedCount = await prisma.counterBid.count({
     where: {
       tripId: trip.id,
@@ -779,20 +886,27 @@ export const getRideOffers = async (tripId: string, riderId: string) => {
     },
   });
 
+  // Add warning if more than 5 drivers tried to bid
+  const totalBidsExceeded = interestedCount > MAX_DRIVERS_PER_RIDE;
+  
   return {
     trip: mainTrip,
     currentStatus: trip.status,
     acceptedDriver,
     counterBids: formattedCounterBids,
     bestOffer,
-    totalInterestedDrivers: interestedCount + (acceptedDriver ? 1 : 0),
+    totalInterestedDrivers: Math.min(interestedCount + (acceptedDriver ? 1 : 0), MAX_DRIVERS_PER_RIDE + (acceptedDriver ? 1 : 0)),
     hasAcceptedDriver: !!acceptedDriver,
     canAcceptCounterBid: trip.status === "REQUESTED",
+    maxDriversLimit: MAX_DRIVERS_PER_RIDE,
+    totalBidsExceeded, // Flag if more drivers tried to bid than allowed
     message: trip.status === "DRIVER_ASSIGNED" 
       ? "A driver has accepted your ride request" 
       : trip.status === "DRIVER_COUNTER_BID"
       ? `${formattedCounterBids.length} driver(s) have made counter-offers on your ride`
-      : "Waiting for drivers to respond to your ride request",
+      : totalBidsExceeded 
+        ? `Showing ${MAX_DRIVERS_PER_RIDE} out of ${interestedCount} interested drivers (maximum ${MAX_DRIVERS_PER_RIDE} per ride)`
+        : "Waiting for drivers to respond to your ride request",
   };
 };
 

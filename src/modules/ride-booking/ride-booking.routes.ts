@@ -25,6 +25,7 @@ import {
   getRiderMyTrips,
   getDriverMyTrips,
   getRideOffers,
+  driverArrivingForPickup,
 } from './ride-booking.controller';
 
 import {
@@ -43,6 +44,7 @@ import {
   cancelScheduledRideSchema,
   editScheduledTripSchema,
   getRideOffersSchema,
+  driverArrivingPickupSchema,
 } from './ride-booking.dto';
 
 const router = Router();
@@ -430,21 +432,100 @@ router.post('/drivers/arrived', driverAuth, validate(arrivedAtPickupSchema), arr
  */
 router.post('/drivers/accept', driverAuth, validate(driverAcceptSchema), driverAcceptRide);
 
+
+// ==================== DRIVER ARRIVING FOR PICKUP ====================
+/**
+ * @swagger
+ * /api/drivers/arriving-pickup:
+ *   post:
+ *     summary: Driver updates arriving at pickup location (matches screenshot interface)
+ *     tags: [Ride Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     description: |
+ *       Updates driver's real-time location when approaching pickup point.
+ *       Returns detailed response matching the screenshot showing:
+ *       - Pickup location with nearby streets
+ *       - ETA and distance
+ *       - Emergency SOS option
+ *       - Cancel trip option
+ *       - Cash payment option
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [tripId, driverLat, driverLng]
+ *             properties:
+ *               tripId: { type: string, format: uuid }
+ *               driverLat: { type: number, example: 6.5244 }
+ *               driverLng: { type: number, example: 3.3792 }
+ *               etaMinutes: { type: number, example: 4 }
+ *     responses:
+ *       200:
+ *         description: Driver arrival updated successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               success: true
+ *               message: "Driver arrival information updated"
+ *               tripId: "trip-uuid"
+ *               status: "DRIVER_ASSIGNED"
+ *               driver: { id: "driver-id", name: "Emeka Okafor" }
+ *               rider: { name: "Joshua T", phone: "+234..." }
+ *               pickupLocation: { address: "Warren St", lat: 6.5244, lng: 3.3792 }
+ *               eta: 4
+ *               distanceToPickup: 1.23
+ *               estimatedFare: 4200
+ *               nearbyStreets: ["Warren St", "Chambers St", "Church St"]
+ *               cashPaymentOption: true
+ *               canEmergencySOS: true
+ *               canCancelTrip: true
+ */
+router.post(
+  '/drivers/arriving-pickup',
+  driverAuth,
+  validate(driverArrivingPickupSchema),
+  driverArrivingForPickup
+);
+
 // ==================== START & END TRIP ====================
 /**
  * @swagger
- * /api/rides/start:
+ * /api/drivers/trip/start:
  *   post:
  *     summary: Driver starts the trip after passenger boards
  *     tags: [Ride Booking]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [tripId]
+ *             properties:
+ *               tripId: { type: string, format: uuid }
+ *     responses:
+ *       200:
+ *         description: Trip started successfully
+ *         content:
+ *           application/json:
+ *             example:
+ *               message: "Trip started successfully"
+ *               success: true
+ *               trip:
+ *                 id: "trip-uuid"
+ *                 status: "IN_PROGRESS"
+ *                 startTime: "2024-01-15T10:30:00Z"
  */
-router.post('/rides/start', driverAuth, validate(startTripSchema), startTrip);
+router.post('/drivers/trip/start', driverAuth, validate(startTripSchema), startTrip);
 
 /**
  * @swagger
- * /api/rides/end:
+ * /api/drivers/trip/end:
  *   post:
  *     summary: Driver ends the trip (shows full fare summary with commission)
  *     tags: [Ride Booking]
@@ -460,8 +541,11 @@ router.post('/rides/start', driverAuth, validate(startTripSchema), startTrip);
  *             properties:
  *               tripId: { type: string, format: uuid }
  *               actualFare: { type: number }
+ *     responses:
+ *       200:
+ *         description: Trip completed successfully
  */
-router.post('/rides/end', driverAuth, validate(endTripSchema), endTrip);
+router.post('/drivers/trip/end', driverAuth, validate(endTripSchema), endTrip);
 
 
 // ==================== RATE TRIP ====================

@@ -114,3 +114,10 @@ export const editScheduledTripSchema = z.object({
   scheduledRideId: z.string().uuid(),
   scheduledTime: z.string().datetime("Invalid date/time format"),
 });
+
+export const driverArrivingPickupSchema = z.object({
+  tripId: z.string().uuid(),
+  driverLat: z.number(),
+  driverLng: z.number(),
+  etaMinutes: z.number().positive().optional(),
+});

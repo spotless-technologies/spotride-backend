@@ -34,9 +34,109 @@ export const driverAcceptRide = async (req: Request, res: Response) => {
 };
 
 export const startTrip = async (req: Request, res: Response) => {
-  const { tripId } = rideDto.startTripSchema.parse(req.body);
-  const trip = await rideService.startTrip(tripId);
-  res.json({ message: "Trip started", trip });
+  try {
+    const { tripId } = rideDto.startTripSchema.parse(req.body);
+    
+    // Get trip details before starting
+    const existingTrip = await prisma.trip.findUnique({
+      where: { id: tripId },
+      include: {
+        rider: { select: { firstName: true, lastName: true, phone: true } },
+        driver: { include: { user: { select: { firstName: true, lastName: true } } } }
+      }
+    });
+    
+    if (!existingTrip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+    
+    if (existingTrip.status !== "DRIVER_ASSIGNED" && existingTrip.status !== "DRIVER_ARRIVED") {
+      return res.status(400).json({ 
+        message: `Cannot start trip. Current status: ${existingTrip.status}. Trip must be in DRIVER_ASSIGNED or DRIVER_ARRIVED state.` 
+      });
+    }
+    
+    // Start the trip
+    const trip = await rideService.startTrip(tripId);
+    
+    // Calculate route info for response
+    const pickup = existingTrip.pickupLocation as any;
+    const dropoff = existingTrip.dropoffLocation as any;
+    
+    res.json({ 
+      message: "Trip started successfully",
+      success: true,
+      trip: {
+        id: trip.id,
+        status: trip.status,
+        startTime: trip.startTime,
+        routeInformation: {
+          pickupLocation: pickup?.address || `${pickup?.lat}, ${pickup?.lng}`,
+          dropoffLocation: dropoff?.address || `${dropoff?.lat}, ${dropoff?.lng}`,
+        },
+        rider: {
+          name: `${existingTrip.rider.firstName} ${existingTrip.rider.lastName}`,
+          phone: existingTrip.rider.phone,
+        },
+        driver: existingTrip.driver ? {
+          name: `${existingTrip.driver.user.firstName} ${existingTrip.driver.user.lastName}`,
+        } : null,
+        estimatedFare: existingTrip.estimatedFare,
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ 
+      message: "Failed to start trip", 
+      error: error.message 
+    });
+  }
+};
+
+// ====================== DRIVER ARRIVING FOR PICKUP CONTROLLER ======================
+export const driverArrivingForPickup = async (req: Request, res: Response) => {
+  try {
+    const driverId = (req as any).driver?.driverId;
+    if (!driverId) {
+      return res.status(403).json({ message: 'Driver access required' });
+    }
+
+    const { tripId, driverLat, driverLng, etaMinutes } = rideDto.driverArrivingPickupSchema.parse(req.body);
+
+    const arrivalData = await rideService.driverArrivingForPickup(
+      driverId, 
+      tripId, 
+      driverLat, 
+      driverLng, 
+      etaMinutes
+    );
+
+    res.json({
+      success: true,
+      message: "Driver arrival information updated",
+      ...arrivalData,
+    });
+  } catch (error: any) {
+    if (error.name === 'ZodError') {
+      return res.status(400).json({ 
+        message: "Validation error", 
+        errors: error.errors 
+      });
+    }
+    if (error.message === "Trip not found") {
+      return res.status(404).json({ message: error.message });
+    }
+    if (error.message === "You don't have permission for this trip") {
+      return res.status(403).json({ message: error.message });
+    }
+    if (error.message.includes("Cannot update arrival")) {
+      return res.status(400).json({ message: error.message });
+    }
+    console.error("Driver arriving error:", error);
+    res.status(500).json({ 
+      message: "Failed to update driver arrival", 
+      error: error.message 
+    });
+  }
 };
 
 export const endTrip = async (req: Request, res: Response) => {
