@@ -154,10 +154,11 @@ model User {
   notifications  Notification[]
   wallet         Wallet?
 
-  adminUser      AdminUser?
+  adminUser AdminUser?
 
   @@map("users")
 }
+
 model BlacklistedToken {
   id        String   @id @default(uuid())
   token     String   @unique
@@ -169,6 +170,7 @@ model BlacklistedToken {
   @@index([expiresAt])
   @@map("blacklisted_tokens")
 }
+
 model Driver {
   id     String @id @default(uuid())
   userId String @unique
@@ -573,8 +575,8 @@ model Delivery {
 
   status String @default("In Transit") // In Transit, Delivered, Failed, Cancelled
 
-  category String // Food & Beverages, Electronics, Documents, Groceries, Fragile Items, Retail Goods, Medical Supplies
-  categoryId   String? 
+  category        String // Food & Beverages, Electronics, Documents, Groceries, Fragile Items, Retail Goods, Medical Supplies
+  categoryId      String?
   courierCategory CourierCategory? @relation(fields: [categoryId], references: [id])
 
   createdAt DateTime @default(now())
@@ -781,6 +783,7 @@ model Conversation {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  calls     Call[]
 
   @@map("conversations")
 }
@@ -802,6 +805,48 @@ model Message {
   createdAt DateTime @default(now())
 
   @@map("messages")
+}
+
+// Add to your schema.prisma
+enum CallType {
+  VOICE
+  VIDEO
+}
+
+enum CallStatus {
+  INITIATED
+  RINGING
+  CONNECTED
+  ENDED
+  MISSED
+  DECLINED
+  FAILED
+}
+
+model Call {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  callerId   String // User ID who initiated call
+  receiverId String // User ID receiving call
+  callType   CallType   @default(VOICE)
+  status     CallStatus @default(INITIATED)
+
+  startTime DateTime? // When call was answered
+  endTime   DateTime? // When call ended
+  duration  Int? // Duration in seconds
+
+  // For WebRTC/SIP integration
+  roomId        String? // Unique room identifier for the call
+  signalingData Json? // WebRTC signaling data
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([conversationId])
+  @@index([status])
+  @@map("calls")
 }
 
 model DriverWalletTransaction {

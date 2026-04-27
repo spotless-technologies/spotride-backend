@@ -121,3 +121,23 @@ export const driverArrivingPickupSchema = z.object({
   driverLng: z.number(),
   etaMinutes: z.number().positive().optional(),
 });
+
+// ====================== CALL DTOs ======================
+export const initiateCallSchema = z.object({
+  conversationId: z.string().uuid(),
+  receiverId: z.string().uuid(),
+  callType: z.enum(['VOICE', 'VIDEO']).default('VOICE'),
+});
+
+export const updateCallStatusSchema = z.object({
+  callId: z.string().uuid(),
+  status: z.enum(['RINGING', 'CONNECTED', 'ENDED', 'MISSED', 'DECLINED']),
+  signalingData: z.any().optional(),
+  duration: z.number().positive().optional(),
+});
+
+export const getCallHistorySchema = z.object({
+  conversationId: z.string().uuid(),
+  limit: z.number().min(1).max(100).default(50),
+  offset: z.number().min(0).default(0),
+});

@@ -261,7 +261,16 @@ export const getNearbyDrivers = async (lat: number, lng: number, radiusKm: numbe
   };
 };
 
+// ====================== CONVERSATION SERVICES ======================
 export const createConversation = async (tripId: string, riderId: string, driverId: string) => {
+  const existingConversation = await prisma.conversation.findUnique({
+    where: { tripId }
+  });
+  
+  if (existingConversation) {
+    return existingConversation;
+  }
+  
   return prisma.conversation.create({
     data: {
       tripId,
@@ -272,7 +281,20 @@ export const createConversation = async (tripId: string, riderId: string, driver
   });
 };
 
-export const sendMessage = async (conversationId: string, senderId: string, senderType: 'RIDER' | 'DRIVER', data: any) => {
+export const sendMessage = async (
+  conversationId: string, 
+  senderId: string, 
+  senderType: 'RIDER' | 'DRIVER', 
+  data: any
+) => {
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId }
+  });
+  
+  if (!conversation) {
+    throw new Error("Conversation not found");
+  }
+  
   return prisma.message.create({
     data: {
       conversationId,
@@ -297,6 +319,129 @@ export const markMessageRead = async (messageId: string) => {
     where: { id: messageId },
     data: { isRead: true },
   });
+};
+
+
+// ====================== CALL SERVICES ======================
+export const initiateCall = async (
+  conversationId: string, 
+  callerId: string, 
+  receiverId: string, 
+  callType: 'VOICE' | 'VIDEO' = 'VOICE'
+) => {
+  // Verify conversation exists
+  const conversation = await prisma.conversation.findUnique({
+    where: { id: conversationId },
+    select: {
+      id: true,
+      riderId: true,  
+      driverId: true, 
+    }
+  });
+
+  if (!conversation) {
+    throw new Error("Conversation not found");
+  }
+
+  // Verify caller and receiver are the two participants
+  const participants = [conversation.riderId, conversation.driverId];
+  if (!participants.includes(callerId) || !participants.includes(receiverId)) {
+    throw new Error("Invalid call participants");
+  }
+
+  const roomId = `${conversationId}_${Date.now()}`;
+
+  const call = await prisma.call.create({
+    data: {
+      conversationId,
+      callerId,
+      receiverId,
+      callType,
+      status: 'INITIATED',
+      roomId,
+    },
+  });
+
+  return {
+    call,
+    roomId,
+  };
+};
+
+export const updateCallStatus = async (
+  callId: string, 
+  userId: string,
+  status: string, 
+  signalingData?: any,
+  duration?: number
+) => {
+  const call = await prisma.call.findUnique({
+    where: { id: callId }
+  });
+
+  if (!call) {
+    throw new Error("Call not found");
+  }
+
+  const isParticipant = call.callerId === userId || call.receiverId === userId;
+  if (!isParticipant) {
+    throw new Error("You are not a participant in this call");
+  }
+
+  const updateData: any = { status };
+  
+  if (status === 'CONNECTED' && !call.startTime) {
+    updateData.startTime = new Date();
+  }
+  
+  if (status === 'ENDED' || status === 'MISSED' || status === 'DECLINED') {
+    updateData.endTime = new Date();
+    if (duration) {
+      updateData.duration = duration;
+    } else if (call.startTime) {
+      updateData.duration = Math.floor((Date.now() - call.startTime.getTime()) / 1000);
+    }
+  }
+
+  if (signalingData) {
+    updateData.signalingData = signalingData;
+  }
+
+  return prisma.call.update({
+    where: { id: callId },
+    data: updateData,
+  });
+};
+
+export const getCallHistory = async (conversationId: string, limit: number = 50, offset: number = 0) => {
+  return prisma.call.findMany({
+    where: { conversationId },
+    orderBy: { createdAt: 'desc' },
+    skip: offset,
+    take: limit,
+  });
+};
+
+export const getOrCreateConversation = async (tripId: string, riderUserId: string, driverUserId: string) => {
+  // Check if conversation already exists using tripId
+  let conversation = await prisma.conversation.findUnique({
+    where: { tripId },
+    include: { messages: true }
+  });
+  
+  if (!conversation) {
+    // Create new conversation with USER IDs 
+    conversation = await prisma.conversation.create({
+      data: {
+        tripId,
+        riderId: riderUserId,  
+        driverId: driverUserId, 
+      },
+      include: { messages: true },
+    });
+  }
+  
+  return conversation;
 };
 
 // Driver sees nearby ride requests (with counter-bid capability)

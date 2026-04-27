@@ -26,6 +26,9 @@ import {
   getDriverMyTrips,
   getRideOffers,
   driverArrivingForPickup,
+  initiateCall,
+  updateCallStatus,
+  getCallHistory,
 } from './ride-booking.controller';
 
 import {
@@ -46,6 +49,7 @@ import {
   getRideOffersSchema,
   driverArrivingPickupSchema,
 } from './ride-booking.dto';
+import { chatAuth } from '../../middleware/chat';
 
 const router = Router();
 
@@ -438,7 +442,7 @@ router.post('/drivers/accept', driverAuth, validate(driverAcceptSchema), driverA
  * @swagger
  * /api/drivers/arriving-pickup:
  *   post:
- *     summary: Driver updates arriving at pickup location (matches screenshot interface)
+ *     summary: Driver updates arriving at pickup location
  *     tags: [Ride Booking]
  *     security:
  *       - bearerAuth: []
@@ -842,49 +846,184 @@ router.get('/rides/:tripId', riderAuth, getTripInfo);
  * @swagger
  * /api/rides/conversations:
  *   post:
- *     summary: Create conversation between rider and driver for a trip
+ *     summary: Create or get existing conversation for a trip
  *     tags: [Ride Booking]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       Creates a new conversation between rider and driver for a specific trip.
+ *       If a conversation already exists, returns the existing one.
+ *       
+ *       **Authentication:** Both Rider and Driver can create conversations
+ *       **Flow:** Only after driver has accepted the ride
+ *     
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
- *             required: [tripId]
+ *             required:
+ *               - tripId
  *             properties:
- *               tripId: { type: string, format: uuid }
+ *               tripId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: Unique identifier of the trip
+ *                 example: "550e8400-e29b-41d4-a716-446655440000"
+ *     
  *     responses:
  *       201:
- *         description: Conversation created
+ *         description: Conversation created or retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Conversation created successfully"
+ *                 conversation:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     tripId:
+ *                       type: string
+ *                       format: uuid
+ *                     riderId:
+ *                       type: string
+ *                       format: uuid
+ *                     driverId:
+ *                       type: string
+ *                       format: uuid
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                     messages:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *       400:
+ *         description: Driver not assigned to trip
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Driver not assigned to this trip yet"
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       403:
+ *         description: Forbidden - User is not part of this trip
+ *       404:
+ *         description: Trip not found
  */
-router.post('/rides/conversations', riderAuth, createConversation);
+router.post('/rides/conversations', chatAuth, createConversation);
 
 /**
  * @swagger
  * /api/rides/conversations/{conversationId}/messages:
  *   post:
- *     summary: Send message or voice note in conversation
+ *     summary: Send a message in a conversation
  *     tags: [Ride Booking]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       Send text, voice note, image, or location message in an existing conversation.
+ *       
+ *       **Supported message types:**
+ *       - TEXT: Plain text message
+ *       - VOICE_NOTE: Voice recording (requires voiceNoteUrl)
+ *       - IMAGE: Image message (requires content with image URL)
+ *       - LOCATION: Location sharing (requires content with coordinates)
+ *     
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID of the conversation
+ *         example: "660e8400-e29b-41d4-a716-446655440001"
+ *     
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - conversationId
  *             properties:
- *               conversationId: { type: string, format: uuid }
- *               content: { type: string }
- *               voiceNoteUrl: { type: string }
- *               type: { type: string, enum: ["TEXT", "VOICE_NOTE"] }
+ *               conversationId:
+ *                 type: string
+ *                 format: uuid
+ *                 example: "660e8400-e29b-41d4-a716-446655440001"
+ *               content:
+ *                 type: string
+ *                 description: Message content (text, image URL, or location data)
+ *                 example: "I'm arriving in 5 minutes"
+ *               voiceNoteUrl:
+ *                 type: string
+ *                 format: uri
+ *                 description: S3 URL for voice note (required if type is VOICE_NOTE)
+ *                 example: "https://bucket.s3.amazonaws.com/voice/recording.mp3"
+ *               type:
+ *                 type: string
+ *                 enum: [TEXT, VOICE_NOTE, IMAGE, LOCATION]
+ *                 default: TEXT
+ *                 description: Type of message being sent
+ *     
  *     responses:
  *       201:
- *         description: Message sent
+ *         description: Message sent successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Message sent successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     conversationId:
+ *                       type: string
+ *                       format: uuid
+ *                     senderId:
+ *                       type: string
+ *                       format: uuid
+ *                     senderType:
+ *                       type: string
+ *                       enum: [RIDER, DRIVER]
+ *                     content:
+ *                       type: string
+ *                     type:
+ *                       type: string
+ *                     isRead:
+ *                       type: boolean
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *       400:
+ *         description: Invalid message type or missing required fields
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: No permission to send messages in this conversation
+ *       404:
+ *         description: Conversation not found
  */
-router.post('/rides/conversations/:conversationId/messages', riderAuth, validate(sendMessageSchema), sendMessage);
+router.post('/rides/conversations/:conversationId/messages', chatAuth, sendMessage);
 
 /**
  * @swagger
@@ -894,10 +1033,321 @@ router.post('/rides/conversations/:conversationId/messages', riderAuth, validate
  *     tags: [Ride Booking]
  *     security:
  *       - bearerAuth: []
+ *     description: |
+ *       Retrieves all messages in a conversation, ordered chronologically.
+ *       Both riders and drivers can view messages in conversations they participate in.
+ *     
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID of the conversation
+ *         example: "660e8400-e29b-41d4-a716-446655440001"
+ *     
  *     responses:
  *       200:
- *         description: List of messages
+ *         description: List of messages retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   id:
+ *                     type: string
+ *                     format: uuid
+ *                   conversationId:
+ *                     type: string
+ *                     format: uuid
+ *                   senderId:
+ *                     type: string
+ *                     format: uuid
+ *                   senderType:
+ *                     type: string
+ *                     enum: [RIDER, DRIVER]
+ *                   content:
+ *                     type: string
+ *                     nullable: true
+ *                   voiceNoteUrl:
+ *                     type: string
+ *                     format: uri
+ *                     nullable: true
+ *                   type:
+ *                     type: string
+ *                     enum: [TEXT, VOICE_NOTE, IMAGE, LOCATION]
+ *                   isRead:
+ *                     type: boolean
+ *                   createdAt:
+ *                     type: string
+ *                     format: date-time
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: No permission to view this conversation
+ *       404:
+ *         description: Conversation not found
  */
-router.get('/rides/conversations/:conversationId/messages', riderAuth, getConversationMessages);
+router.get('/rides/conversations/:conversationId/messages', chatAuth, getConversationMessages);
+
+// ==================== IN-APP CALLING ====================
+/**
+ * @swagger
+ * /api/rides/conversations/{conversationId}/calls/initiate:
+ *   post:
+ *     summary: Initiate a voice or video call
+ *     tags: [Ride Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     description: |
+ *       Initiates a real-time voice or video call between rider and driver.
+ *       Creates a WebRTC room and returns signaling data for connection.
+ *       
+ *       **Call Flow:**
+ *       1. Caller initiates call via this endpoint
+ *       2. System creates a unique room ID
+ *       3. Receiver gets push notification
+ *       4. Both parties exchange WebRTC signals via WebSocket
+ *       5. Call connects when both accept
+ *     
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID of the conversation
+ *         example: "660e8400-e29b-41d4-a716-446655440001"
+ *     
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - receiverId
+ *             properties:
+ *               receiverId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the user receiving the call
+ *                 example: "770e8400-e29b-41d4-a716-446655440002"
+ *               callType:
+ *                 type: string
+ *                 enum: [VOICE, VIDEO]
+ *                 default: VOICE
+ *                 description: Type of call to initiate
+ *     
+ *     responses:
+ *       200:
+ *         description: Call initiated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Call initiated"
+ *                 callId:
+ *                   type: string
+ *                   format: uuid
+ *                 roomId:
+ *                   type: string
+ *                   description: Unique WebRTC room identifier
+ *                 status:
+ *                   type: string
+ *                   enum: [INITIATED, RINGING, CONNECTED, ENDED]
+ *       400:
+ *         description: Invalid participants or call already in progress
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Conversation not found
+ */
+router.post('/rides/conversations/:conversationId/calls/initiate', chatAuth, initiateCall);
+
+/**
+ * @swagger
+ * /api/rides/calls/status:
+ *   put:
+ *     summary: Update call status (ringing, connected, ended, etc.)
+ *     tags: [Ride Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     description: |
+ *       Updates the status of an ongoing call. Used for:
+ *       - RINGING: When receiver is being notified
+ *       - CONNECTED: When call is answered
+ *       - ENDED: When call is hung up
+ *       - MISSED: When receiver doesn't answer
+ *       - DECLINED: When receiver rejects the call
+ *     
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - callId
+ *               - status
+ *             properties:
+ *               callId:
+ *                 type: string
+ *                 format: uuid
+ *                 description: ID of the call to update
+ *                 example: "880e8400-e29b-41d4-a716-446655440003"
+ *               status:
+ *                 type: string
+ *                 enum: [RINGING, CONNECTED, ENDED, MISSED, DECLINED]
+ *                 description: New call status
+ *               signalingData:
+ *                 type: object
+ *                 description: WebRTC signaling data (SDP offers/answers)
+ *                 example: {"type": "offer", "sdp": "v=0\r\no=-..."}
+ *               duration:
+ *                 type: integer
+ *                 description: Call duration in seconds (for ENDED status)
+ *                 example: 125
+ *     
+ *     responses:
+ *       200:
+ *         description: Call status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Call connected"
+ *                 call:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     status:
+ *                       type: string
+ *                     duration:
+ *                       type: integer
+ *                       nullable: true
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Not a participant in this call
+ *       404:
+ *         description: Call not found
+ */
+router.put('/rides/calls/status',chatAuth, updateCallStatus);
+
+/**
+ * @swagger
+ * /api/rides/conversations/{conversationId}/calls:
+ *   get:
+ *     summary: Get call history for a conversation
+ *     tags: [Ride Booking]
+ *     security:
+ *       - bearerAuth: []
+ *     description: |
+ *       Retrieves call history for a specific conversation, including:
+ *       - Call timestamps
+ *       - Duration
+ *       - Call type (voice/video)
+ *       - Status (connected, missed, declined)
+ *     
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: ID of the conversation
+ *         example: "660e8400-e29b-41d4-a716-446655440001"
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 50
+ *         description: Number of records to return
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *           default: 0
+ *         description: Number of records to skip for pagination
+ *     
+ *     responses:
+ *       200:
+ *         description: Call history retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 count:
+ *                   type: integer
+ *                   example: 15
+ *                 calls:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                         format: uuid
+ *                       callerId:
+ *                         type: string
+ *                         format: uuid
+ *                       receiverId:
+ *                         type: string
+ *                         format: uuid
+ *                       callType:
+ *                         type: string
+ *                         enum: [VOICE, VIDEO]
+ *                       status:
+ *                         type: string
+ *                         enum: [CONNECTED, MISSED, DECLINED, ENDED]
+ *                       duration:
+ *                         type: integer
+ *                         nullable: true
+ *                       startTime:
+ *                         type: string
+ *                         format: date-time
+ *                         nullable: true
+ *                       endTime:
+ *                         type: string
+ *                         format: date-time
+ *                         nullable: true
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: No permission to view call history
+ *       404:
+ *         description: Conversation not found
+ */
+router.get('/rides/conversations/:conversationId/calls',chatAuth, getCallHistory);
 
 export default router;
