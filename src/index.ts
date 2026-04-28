@@ -25,7 +25,7 @@ import driverEarningsWalletRoutes from './modules/driver-earnings-and-wallet/dri
 import carOwnerEarningsRoutes from './modules/car-owner-earnings-and-payouts/car-owner-earnings-and-payouts.routes';
 import transactionHistoryRoutes from './modules/transaction-history-and-revenue-reports/transaction-history-and-revenue-reports.routes';
 import promoCodesRoutes from './modules/promo-codes-and-discounts/promo-codes-and-discounts.routes';
-// import adminRolesAndPermissionsRoutes from './modules/admin-roles-and-permissions/admin-roles-and-permissions.routes';
+import adminRolesAndPermissionsRoutes from './modules/admin-roles-and-permissions/admin-roles-and-permissions.routes';
 
 import driverProfileRoutes from './modules/driver-profile/driver-profile.routes';
 import driverStatusRoutes from './routes/driver-status.routes';
@@ -156,7 +156,7 @@ app.use('/api/admin', driverEarningsWalletRoutes);
 app.use('/api/admin', carOwnerEarningsRoutes);
 app.use('/api/admin', transactionHistoryRoutes);
 app.use('/api/admin', promoCodesRoutes);
-// app.use('/api/admin', adminRolesAndPermissionsRoutes);
+app.use('/api/admin', adminRolesAndPermissionsRoutes);
 
 app.use('/api/driver', driverProfileRoutes);
 app.use('/driver', driverStatusRoutes);
